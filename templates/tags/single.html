@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}#{{ term.name }} · {{ config.title }}{% endblock title %}
+{% block body_class %}page-page{% endblock body_class %}
+
+{% block content %}
+<article class="page-shell">
+  <header class="page-header">
+    <p class="eyebrow"><span></span> Tag / 标签</p>
+    <h1>#{{ term.name }}</h1>
+    <p>共 {{ term.pages | length }} 篇文章。</p>
+  </header>
+  <div class="page-content tag-sections">
+    <section class="tag-section">
+      <h2>#{{ term.name }}</h2>
+      <ol>
+        {% for post in term.pages %}
+          <li>
+            <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
+            <time datetime="{{ post.date }}">{{ post.date | date(format="%Y.%m.%d") }}</time>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
+</article>
+{% endblock content %}
+

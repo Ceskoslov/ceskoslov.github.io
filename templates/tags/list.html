@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}标签 · {{ config.title }}{% endblock title %}
+{% block body_class %}page-page{% endblock body_class %}
+
+{% block content %}
+<article class="page-shell">
+  <header class="page-header">
+    <p class="eyebrow"><span></span> Tags / 主题</p>
+    <h1>标签</h1>
+    <p>从关键词进入，寻找散落在不同时间里的关联。</p>
+  </header>
+  <div class="page-content">
+    <div class="tag-cloud" aria-label="全部标签">
+      {% for term in terms %}
+        <a href="{{ term.permalink | safe }}">{{ term.name }} <sup>{{ term.pages | length }}</sup></a>
+      {% endfor %}
+    </div>
+  </div>
+</article>
+{% endblock content %}
+

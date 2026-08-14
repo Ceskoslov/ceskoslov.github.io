@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block body_class %}page-page{% endblock body_class %}
+
+{% block content %}
+{% set writing = get_section(path="writing/_index.md") %}
+<article class="page-shell">
+  <header class="page-header">
+    <p class="eyebrow"><span></span> Archive / 时间线</p>
+    <h1>{{ page.title }}</h1>
+    <p>{{ page.description }}</p>
+  </header>
+  <div class="page-content archive">
+    {% for year, posts in writing.pages | group_by(attribute="year") %}
+      <section class="archive-year">
+        <h2>{{ year }}</h2>
+        <ol>
+          {% for post in posts %}
+            <li>
+              <time datetime="{{ post.date }}">{{ post.date | date(format="%m.%d") }}</time>
+              <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
+              <span>{{ post.reading_time }} 分钟</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endfor %}
+  </div>
+</article>
+{% endblock content %}
+
