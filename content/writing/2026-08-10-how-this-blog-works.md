@@ -39,4 +39,3 @@ git push
 GitHub Actions 会调用 Zola 自动构建并更新 GitHub Pages，无需手动导出 HTML，也不依赖 Ruby 环境。
 
 更多本地预览、草稿和图片使用方法，都记录在仓库的 `README.md` 中。
-
