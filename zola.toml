@@ -1,0 +1,34 @@
+base_url = "https://ceskoslov.github.io"
+title = "Chaos"
+description = "在秩序与噪声之间，记录代码、设计与日常。"
+default_language = "zh"
+compile_sass = false
+minify_html = true
+generate_feeds = true
+feed_filenames = ["atom.xml"]
+generate_sitemap = true
+generate_robots_txt = true
+
+taxonomies = [
+  { name = "tags", feed = true }
+]
+
+[markdown]
+smart_punctuation = true
+external_links_target_blank = true
+external_links_no_follow = false
+external_links_no_referrer = false
+
+[markdown.highlighting]
+style = "inline"
+theme = "github-dark"
+
+[slugify]
+paths = "on"
+taxonomies = "on"
+anchors = "on"
+
+[extra]
+author = "ceskoslov"
+author_bio = "写代码，也记录那些没有标准答案的事。"
+github_username = "ceskoslov"

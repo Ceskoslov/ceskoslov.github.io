@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "macros.html" as macros %}
+
+{% block title %}{{ section.title }}{% endblock title %}
+{% block body_class %}page-home{% endblock body_class %}
+
+{% block content %}
+{% set writing = get_section(path="writing/_index.md") %}
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero__index" aria-hidden="true">001—∞</div>
+  <div class="hero__content">
+    <p class="eyebrow"><span></span> Personal notes / 个人博客</p>
+    <h1 id="hero-title">
+      <span>Make sense</span>
+      <span>of the <em>chaos.</em></span>
+    </h1>
+    <p class="hero__intro">{{ config.description }}</p>
+  </div>
+  <div class="hero__symbol" aria-hidden="true">
+    <span>秩</span><span>序</span><i></i><span>混</span><span>沌</span>
+  </div>
+</section>
+
+<section class="post-feed" aria-labelledby="latest-posts">
+  <header class="section-heading">
+    <h2 id="latest-posts">最近文章</h2>
+    <span>{{ writing.pages | length }} POSTS</span>
+  </header>
+
+  {% if writing.pages %}
+    <div class="post-grid">
+      {% for post in writing.pages %}
+        {{ macros::post_card(post=post, featured=loop.first) }}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>这里暂时一片安静。</p>
+      <span>在 <code>content/writing</code> 目录添加第一篇 Markdown 文章吧。</span>
+    </div>
+  {% endif %}
+</section>
+
+<section class="manifesto">
+  <p aria-hidden="true">*</p>
+  <blockquote>“混沌不是秩序的反面，<br>而是尚未被理解的结构。”</blockquote>
+  <span>— NOTES ON CHAOS</span>
+</section>
+{% endblock content %}
