@@ -1,15 +1,15 @@
 +++
 title = "Write a Draft"
 date = 2026-08-14
-description = "This is a draft template.Only visible when using `--drafts` locally."
+description = "A draft template that is only visible locally when using `--drafts`."
 draft = true
 
 [taxonomies]
 tags = ["Draft"]
 +++
 
-This is a draft template.The `draft` setting is `true`, so it will only be visible when using `--drafts` locally.
+This is a draft template. The `draft` setting is `true`, so the post is only visible locally when using `--drafts`.
 
-## Subtitle
+## Section Heading
 
-Write your content here.Set `draft` to `false` when ready to publish.
+Write your content here. Set `draft` to `false` when you are ready to publish.

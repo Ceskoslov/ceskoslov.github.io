@@ -1,6 +1,6 @@
 +++
 title = "Archive"
-description = "All text, sorted by time in reverse order."
+description = "All posts, listed in reverse chronological order."
 template = "archive.html"
 path = "archive"
 +++

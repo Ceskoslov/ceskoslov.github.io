@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}标签 · {{ config.title }}{% endblock title %}
+{% block title %}Tags · {{ config.title }}{% endblock title %}
 {% block body_class %}page-page{% endblock body_class %}
 
 {% block content %}
 <article class="page-shell">
   <header class="page-header">
-    <p class="eyebrow"><span></span> Tags / 主题</p>
-    <h1>标签</h1>
-    <p>从关键词进入，寻找散落在不同时间里的关联。</p>
+    <p class="eyebrow"><span></span> Tags / Topics</p>
+    <h1>Tags</h1>
+    <p>Browse by topic and discover connections across posts and time.</p>
   </header>
   <div class="page-content">
-    <div class="tag-cloud" aria-label="全部标签">
+    <div class="tag-cloud" aria-label="All tags">
       {% for term in terms %}
         <a href="{{ term.permalink | safe }}">{{ term.name }} <sup>{{ term.pages | length }}</sup></a>
       {% endfor %}
@@ -19,4 +19,3 @@
   </div>
 </article>
 {% endblock content %}
-
