@@ -1,6 +1,6 @@
 +++
 title = "How This Blog Works"
-date = 2026-08-17
+date = 2026-08-10
 description = "From Markdown to GitHub Pages."
 
 [taxonomies]
