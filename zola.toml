@@ -1,7 +1,7 @@
 base_url = "https://ceskoslov.github.io"
 title = "Chaos"
-description = "在秩序与噪声之间，记录代码、设计与日常。"
-default_language = "zh"
+description = "Lingering on"
+default_language = "en"
 compile_sass = false
 minify_html = true
 generate_feeds = true
@@ -30,5 +30,5 @@ anchors = "on"
 
 [extra]
 author = "ceskoslov"
-author_bio = "写代码，也记录那些没有标准答案的事。"
+author_bio = "D'où venons-nous ? Que sommes-nous ? Où allons-nous ?"
 github_username = "ceskoslov"

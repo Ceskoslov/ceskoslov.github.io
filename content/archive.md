@@ -1,7 +1,6 @@
 +++
-title = "归档"
-description = "所有文字，按时间逆序排列。"
+title = "Archive"
+description = "All text, sorted by time in reverse order."
 template = "archive.html"
 path = "archive"
 +++
-
