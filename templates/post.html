@@ -5,15 +5,15 @@
 {% block content %}
 <article class="post">
   <header class="post-header">
-    <a class="back-link" href="{{ config.base_url | safe }}">← 返回文章</a>
+    <a class="back-link" href="{{ config.base_url | safe }}">← Back to posts</a>
     <div class="post-header__meta">
       <time datetime="{{ page.date }}">{{ page.date | date(format="%Y.%m.%d") }}</time>
-      <span>阅读约 {{ page.reading_time }} 分钟</span>
+      <span>{{ page.reading_time }} min read</span>
     </div>
     <h1>{{ page.title }}</h1>
     {% if page.description %}<p class="post-header__description">{{ page.description }}</p>{% endif %}
     {% if page.taxonomies.tags %}
-      <ul class="tag-list tag-list--post" aria-label="文章标签">
+      <ul class="tag-list tag-list--post" aria-label="Post tags">
         {% for tag in page.taxonomies.tags %}
           <li><a href="{{ get_taxonomy_url(kind='tags', name=tag) | safe }}">#{{ tag }}</a></li>
         {% endfor %}
@@ -27,23 +27,22 @@
 
   <footer class="post-footer">
     <div class="post-footer__mark" aria-hidden="true">//</div>
-    <p>感谢阅读。若这篇文章对你有启发，欢迎分享。</p>
+    <p>Thanks for reading. If this post resonated with you, feel free to share it.</p>
   </footer>
 </article>
 
 {% if page.earlier or page.later %}
-  <nav class="post-navigation" aria-label="相邻文章">
+  <nav class="post-navigation" aria-label="Post navigation">
     {% if page.earlier %}
       <a href="{{ page.earlier.permalink | safe }}">
-        <span>上一篇</span><strong>{{ page.earlier.title }}</strong>
+        <span>Previous post</span><strong>{{ page.earlier.title }}</strong>
       </a>
     {% else %}<span></span>{% endif %}
     {% if page.later %}
       <a href="{{ page.later.permalink | safe }}">
-        <span>下一篇</span><strong>{{ page.later.title }}</strong>
+        <span>Next post</span><strong>{{ page.later.title }}</strong>
       </a>
     {% endif %}
   </nav>
 {% endif %}
 {% endblock content %}
-

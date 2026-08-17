@@ -1,19 +1,18 @@
 {% macro post_card(post, featured=false) %}
 <article class="post-card{% if featured %} post-card--featured{% endif %}">
-  <a class="post-card__link" href="{{ post.permalink | safe }}" aria-label="阅读《{{ post.title }}》"></a>
+  <a class="post-card__link" href="{{ post.permalink | safe }}" aria-label="Read {{ post.title }}"></a>
   <div class="post-card__meta">
     <time datetime="{{ post.date }}">{{ post.date | date(format="%Y.%m.%d") }}</time>
     <span aria-hidden="true">/</span>
-    <span>{{ post.reading_time }} 分钟</span>
+    <span>{{ post.reading_time }} min read</span>
   </div>
   <h2 class="post-card__title">{{ post.title }}</h2>
   {% if post.description %}<p class="post-card__description">{{ post.description }}</p>{% endif %}
   {% if post.taxonomies.tags %}
-    <ul class="tag-list" aria-label="文章标签">
+    <ul class="tag-list" aria-label="Post tags">
       {% for tag in post.taxonomies.tags %}<li>#{{ tag }}</li>{% endfor %}
     </ul>
   {% endif %}
   <span class="post-card__arrow" aria-hidden="true">↗</span>
 </article>
 {% endmacro post_card %}
-

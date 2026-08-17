@@ -6,7 +6,7 @@
 {% set writing = get_section(path="writing/_index.md") %}
 <article class="page-shell">
   <header class="page-header">
-    <p class="eyebrow"><span></span> Archive / 时间线</p>
+    <p class="eyebrow"><span></span> Archive / Timeline</p>
     <h1>{{ page.title }}</h1>
     <p>{{ page.description }}</p>
   </header>
@@ -19,7 +19,7 @@
             <li>
               <time datetime="{{ post.date }}">{{ post.date | date(format="%m.%d") }}</time>
               <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
-              <span>{{ post.reading_time }} 分钟</span>
+              <span>{{ post.reading_time }} min</span>
             </li>
           {% endfor %}
         </ol>
@@ -28,4 +28,3 @@
   </div>
 </article>
 {% endblock content %}
-

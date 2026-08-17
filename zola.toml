@@ -1,6 +1,6 @@
 base_url = "https://ceskoslov.github.io"
 title = "Chaos"
-description = "Lingering on"
+description = "Notes from the edge of order and chaos."
 default_language = "en"
 compile_sass = false
 minify_html = true
@@ -30,5 +30,5 @@ anchors = "on"
 
 [extra]
 author = "ceskoslov"
-author_bio = "D'où venons-nous ? Que sommes-nous ? Où allons-nous ?"
+author_bio = "Where do we come from? What are we? Where are we going?"
 github_username = "ceskoslov"

@@ -32,7 +32,7 @@
     <script defer src="{{ get_url(path='assets/js/main.js', cachebust=true) | safe }}"></script>
   </head>
   <body class="{% block body_class %}page-default{% endblock body_class %}">
-    <a class="skip-link" href="#content">跳到正文</a>
+    <a class="skip-link" href="#content">Skip to content</a>
 
     <div class="chaos-field" aria-hidden="true">
       <span class="chaos-field__dot"></span>
@@ -42,21 +42,21 @@
 
     {% set nav_path = current_path | default(value="") %}
     <header class="site-header">
-      <a class="site-logo" href="{{ config.base_url | safe }}" aria-label="{{ config.title }} 首页">
+      <a class="site-logo" href="{{ config.base_url | safe }}" aria-label="{{ config.title }} home">
         <span class="site-logo__mark" aria-hidden="true">C/</span>
         <span>{{ config.title | upper }}</span>
       </a>
 
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation">
         <span></span><span></span>
-        <span class="sr-only">打开菜单</span>
+        <span class="sr-only">Toggle navigation menu</span>
       </button>
 
-      <nav class="site-nav" id="site-navigation" aria-label="主导航">
-        <a href="{{ config.base_url | safe }}"{% if nav_path == '/' %} class="is-active" aria-current="page"{% endif %}>文章</a>
-        <a href="{{ get_url(path='archive') | safe }}"{% if nav_path is starting_with('/archive') %} class="is-active" aria-current="page"{% endif %}>归档</a>
-        <a href="{{ get_url(path='tags') | safe }}"{% if nav_path is starting_with('/tags') %} class="is-active" aria-current="page"{% endif %}>标签</a>
-        <a href="{{ get_url(path='about') | safe }}"{% if nav_path is starting_with('/about') %} class="is-active" aria-current="page"{% endif %}>关于</a>
+      <nav class="site-nav" id="site-navigation" aria-label="Main navigation">
+        <a href="{{ config.base_url | safe }}"{% if nav_path == '/' %} class="is-active" aria-current="page"{% endif %}>Posts</a>
+        <a href="{{ get_url(path='archive') | safe }}"{% if nav_path is starting_with('/archive') %} class="is-active" aria-current="page"{% endif %}>Archive</a>
+        <a href="{{ get_url(path='tags') | safe }}"{% if nav_path is starting_with('/tags') %} class="is-active" aria-current="page"{% endif %}>Tags</a>
+        <a href="{{ get_url(path='about') | safe }}"{% if nav_path is starting_with('/about') %} class="is-active" aria-current="page"{% endif %}>About</a>
       </nav>
     </header>
 
@@ -71,7 +71,7 @@
         <div class="site-footer__links">
           <a href="{{ get_url(path='atom.xml') | safe }}">RSS</a>
           <a href="https://github.com/{{ config.extra.github_username }}" rel="me">GitHub</a>
-          <button class="theme-toggle" type="button" aria-label="切换深色模式" title="切换深色模式">
+          <button class="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
             <span class="theme-toggle__icon" aria-hidden="true">◐</span>
           </button>
         </div>

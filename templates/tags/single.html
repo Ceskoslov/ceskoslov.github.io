@@ -6,9 +6,9 @@
 {% block content %}
 <article class="page-shell">
   <header class="page-header">
-    <p class="eyebrow"><span></span> Tag / 标签</p>
+    <p class="eyebrow"><span></span> Tag / Topic</p>
     <h1>#{{ term.name }}</h1>
-    <p>共 {{ term.pages | length }} 篇文章。</p>
+    <p>{{ term.pages | length }} post{% if term.pages | length != 1 %}s{% endif %}.</p>
   </header>
   <div class="page-content tag-sections">
     <section class="tag-section">
@@ -25,4 +25,3 @@
   </div>
 </article>
 {% endblock content %}
-

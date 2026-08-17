@@ -5,16 +5,16 @@ template = "page.html"
 path = "about"
 
 [extra]
-kicker = "About / 关于我"
+kicker = "About / Profile"
 +++
 
-???
+Hello! I'm ceskoslov. This is where I share notes, ideas, and things I learn along the way.
 
-## Find me
+## Find Me
 
-- GitHub：[@ceskoslov](https://github.com/ceskoslov)
-- LinkedIn：[Boxin Liu](https://www.linkedin.com/in/boxin-liu/)
+- GitHub: [@ceskoslov](https://github.com/ceskoslov)
+- LinkedIn: [Boxin Liu](https://www.linkedin.com/in/boxin-liu/)
 
-## About this site
+## About This Site
 
-Using [Zola](https://www.getzola.org/) to build，hosted on GitHub Pages.
+This site is built with [Zola](https://www.getzola.org/) and hosted on GitHub Pages.
