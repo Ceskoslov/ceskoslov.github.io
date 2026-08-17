@@ -1,6 +1,6 @@
 +++
 title = "About"
-description = "Hello, I'm ceskoslov."
+description = "Hello, I'm ..."
 template = "page.html"
 path = "about"
 
@@ -8,7 +8,7 @@ path = "about"
 kicker = "About / Profile"
 +++
 
-Hello! I'm ceskoslov. This is where I share notes, ideas, and things I learn along the way.
+I'm ceskoslov/Boxin Liu??? This is where I???
 
 ## Find Me
 

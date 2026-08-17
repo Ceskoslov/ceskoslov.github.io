@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% import "macros.html" as macros %}
 
 {% block title %}{{ section.title }}{% endblock title %}
 {% block body_class %}page-home{% endblock body_class %}
@@ -11,13 +10,13 @@
   <div class="hero__content">
     <p class="eyebrow"><span></span> Personal notes / Journal</p>
     <h1 id="hero-title">
-      <span>Make sense</span>
-      <span>of the <em>chaos.</em></span>
+      <span>Weltnacht.</span>
+      <span>絮。<em>μετεμψύχωσις</em></span>
     </h1>
     <p class="hero__intro">{{ config.description }}</p>
   </div>
   <div class="hero__symbol" aria-hidden="true">
-    <span>OR</span><span>DER</span><i></i><span>CHA</span><span>OS</span>
+    <span>ヌー</span><span>ル</span><i></i><span>CHA</span><span>OS</span>
   </div>
 </section>
 
@@ -30,7 +29,7 @@
   {% if writing.pages %}
     <div class="post-grid">
       {% for post in writing.pages %}
-        {{ macros::post_card(post=post, featured=loop.first) }}
+        {{<post_card post featured={loop.first} />}}
       {% endfor %}
     </div>
   {% else %}
@@ -43,7 +42,7 @@
 
 <section class="manifesto">
   <p aria-hidden="true">*</p>
-  <blockquote>“Chaos is not the opposite of order,<br>but structure not yet understood.”</blockquote>
-  <span>— NOTES ON CHAOS</span>
+  <blockquote>D'où venons-nous?<br>Que sommes-nous?<br>Où allons-nous?</blockquote>
+  <span>— NOTES ON ...</span>
 </section>
 {% endblock content %}
