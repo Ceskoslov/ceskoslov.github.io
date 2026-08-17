@@ -54,9 +54,9 @@
 
       <nav class="site-nav" id="site-navigation" aria-label="Main navigation">
         <a href="{{ config.base_url | safe }}"{% if nav_path == '/' %} class="is-active" aria-current="page"{% endif %}>Posts</a>
-        <a href="{{ get_url(path='archive') | safe }}"{% if nav_path is starting_with('/archive') %} class="is-active" aria-current="page"{% endif %}>Archive</a>
-        <a href="{{ get_url(path='tags') | safe }}"{% if nav_path is starting_with('/tags') %} class="is-active" aria-current="page"{% endif %}>Tags</a>
-        <a href="{{ get_url(path='about') | safe }}"{% if nav_path is starting_with('/about') %} class="is-active" aria-current="page"{% endif %}>About</a>
+        <a href="{{ get_url(path='archive') | safe }}"{% if nav_path is starting_with(pat="/archive") %} class="is-active" aria-current="page"{% endif %}>Archive</a>
+        <a href="{{ get_url(path='tags') | safe }}"{% if nav_path is starting_with(pat="/tags") %} class="is-active" aria-current="page"{% endif %}>Tags</a>
+        <a href="{{ get_url(path='about') | safe }}"{% if nav_path is starting_with(pat="/about") %} class="is-active" aria-current="page"{% endif %}>About</a>
       </nav>
     </header>
 
@@ -69,7 +69,7 @@
       <div class="site-footer__inner">
         <p>© {{ now() | date(format="%Y") }} {{ config.extra.author }} · Built with Zola.</p>
         <div class="site-footer__links">
-          <a href="{{ get_url(path='atom.xml') | safe }}">RSS</a>
+          <!--<a href="{{ get_url(path='atom.xml') | safe }}">RSS</a>-->
           <a href="https://github.com/{{ config.extra.github_username }}" rel="me">GitHub</a>
           <button class="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
             <span class="theme-toggle__icon" aria-hidden="true">◐</span>

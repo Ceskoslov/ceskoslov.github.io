@@ -1,4 +1,4 @@
-{% macro post_card(post, featured=false) %}
+{% component post_card(post: map, featured: bool = false) %}
 <article class="post-card{% if featured %} post-card--featured{% endif %}">
   <a class="post-card__link" href="{{ post.permalink | safe }}" aria-label="Read {{ post.title }}"></a>
   <div class="post-card__meta">
@@ -15,4 +15,4 @@
   {% endif %}
   <span class="post-card__arrow" aria-hidden="true">↗</span>
 </article>
-{% endmacro post_card %}
+{% endcomponent post_card %}
