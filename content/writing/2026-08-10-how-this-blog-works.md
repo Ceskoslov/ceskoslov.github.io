@@ -4,7 +4,7 @@ date = 2026-08-10
 description = "From Markdown to GitHub Pages."
 
 [taxonomies]
-tags = ["Zola", "Markdown", "Tech"]
+tags = ["Techs"]
 +++
 
 This blog is built with [Zola](https://www.getzola.org/), a static site generator written in Rust.
