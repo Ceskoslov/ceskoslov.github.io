@@ -55,15 +55,29 @@
 
   const fragmentScene = document.querySelector('[data-fragment-scene]');
   const fragmentRegion = document.querySelector('[data-fragment-region]');
+  const atlasSandbox = document.querySelector('[data-atlas-sandbox]');
+  const atlasMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let atlas = null;
 
-  if (fragmentScene && fragmentRegion) {
-    initContourFragments(fragmentScene, fragmentRegion);
+  if ((fragmentScene && fragmentRegion) || atlasSandbox) {
+    atlas = makeContourAtlas(getSessionSeed());
   }
 
-  function initContourFragments(scene, region) {
-    const seed = getSessionSeed();
+  if (fragmentScene && fragmentRegion && atlas) {
+    initContourFragments(fragmentScene, fragmentRegion, atlas);
+  }
+
+  if (atlasSandbox && atlas) {
+    initAtlasSandbox(atlasSandbox, atlas, atlasMotion);
+  }
+
+  initAtlasReveals(atlasMotion);
+  initCardSurvey(atlas ? atlas.seed : 1);
+
+  function initContourFragments(scene, region, atlasData) {
+    const seed = atlasData.seed;
     const random = mulberry32(seed);
-    const texture = makeContourTexture(seed);
+    const texture = atlasData.svg;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 801px)');
     const fragments = [];
@@ -298,6 +312,347 @@
     }
   }
 
+  function initAtlasReveals(reducedMotion) {
+    const elements = Array.from(document.querySelectorAll('[data-atlas-reveal]'));
+    let observer = null;
+
+    if (!elements.length) return;
+
+    function syncRevealMode() {
+      if (observer) {
+        observer.disconnect();
+        observer = null;
+      }
+
+      if (reducedMotion.matches || !('IntersectionObserver' in window)) {
+        root.classList.remove('has-atlas-motion');
+        elements.forEach(function (element) {
+          element.classList.add('is-revealed');
+        });
+        return;
+      }
+
+      root.classList.add('has-atlas-motion');
+      elements.forEach(function (element) {
+        element.classList.remove('is-revealed');
+      });
+      observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          entry.target.classList.toggle('is-revealed', entry.isIntersecting);
+        });
+      }, { threshold: 0.32, rootMargin: '0px 0px -8% 0px' });
+      elements.forEach(function (element) {
+        observer.observe(element);
+      });
+    }
+
+    syncRevealMode();
+    addMediaListener(reducedMotion, syncRevealMode);
+  }
+
+  function initCardSurvey(seed) {
+    const random = mulberry32(seed ^ 0x51ed270b);
+    document.querySelectorAll('[data-card-coordinate]').forEach(function (coordinate) {
+      const x = (8 + random() * 84).toFixed(2).padStart(5, '0');
+      const y = (8 + random() * 84).toFixed(2).padStart(5, '0');
+      coordinate.textContent = x + ' / ' + y;
+    });
+  }
+
+  function initAtlasSandbox(section, atlasData, reducedMotion) {
+    const board = section.querySelector('[data-atlas-board]');
+    const shardLayer = section.querySelector('[data-atlas-shards]');
+    const probe = section.querySelector('[data-atlas-probe]');
+    const measureLine = section.querySelector('[data-atlas-measure]');
+    const fieldLabel = section.querySelector('[data-atlas-field]');
+    const readoutX = section.querySelector('[data-atlas-x]');
+    const readoutY = section.querySelector('[data-atlas-y]');
+    const readoutAlt = section.querySelector('[data-atlas-alt]');
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 801px)');
+    const random = mulberry32(atlasData.seed ^ 0xa5a5a5a5);
+    const textureUrl = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(atlasData.svg) + '")';
+    const shapes = [
+      'polygon(4% 7%, 91% 0, 100% 76%, 74% 100%, 0 88%)',
+      'polygon(0 16%, 86% 0, 100% 31%, 90% 94%, 14% 100%)',
+      'polygon(10% 0, 100% 10%, 93% 82%, 55% 100%, 0 79%, 5% 20%)',
+      'polygon(0 4%, 80% 0, 100% 64%, 81% 100%, 8% 91%)'
+    ];
+    const slots = shuffled([
+      [0.03, 0.08], [0.34, 0.04], [0.7, 0.1], [0.11, 0.39],
+      [0.46, 0.35], [0.74, 0.48], [0.24, 0.7], [0.61, 0.72]
+    ], random);
+    const waypoints = [[0.14, 0.3], [0.7, 0.24], [0.42, 0.62], [0.78, 0.72], [0.52, 0.48]];
+    const shards = [];
+    let boardWidth = 1;
+    let boardHeight = 1;
+    let visibleCount = 8;
+    let visible = false;
+    let pointerActive = false;
+    let targetX = 0;
+    let targetY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let activeIndex = -1;
+    let introStart = 0;
+    let mobileStart = 0;
+    let frameId = 0;
+    let visibilityObserver = null;
+
+    if (!board || !shardLayer || !probe || !measureLine) return;
+
+    section.style.setProperty('--atlas-texture', textureUrl);
+    if (fieldLabel) fieldLabel.textContent = String(atlasData.seed >>> 0).padStart(10, '0').slice(-10);
+
+    slots.forEach(function (slot, index) {
+      const element = document.createElement('span');
+      const texture = document.createElement('span');
+      element.className = 'atlas-sandbox__shard';
+      element.dataset.sheet = 'F-' + String(index + 1).padStart(2, '0');
+      texture.className = 'atlas-sandbox__shard-texture';
+      element.appendChild(texture);
+      shardLayer.appendChild(element);
+      shards.push({
+        element: element,
+        slot: slot,
+        widthRatio: 0.18 + random() * 0.1,
+        aspect: 0.55 + random() * 0.32,
+        rotation: -10 + random() * 20,
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0,
+        centerX: 0,
+        centerY: 0
+      });
+      element.style.setProperty('--shard-shape', shapes[Math.floor(random() * shapes.length)]);
+    });
+
+    measureBoard();
+    syncSandboxMotion();
+    window.addEventListener('resize', handleSandboxResize, { passive: true });
+    addMediaListener(reducedMotion, syncSandboxMotion);
+    addMediaListener(finePointer, syncSandboxInputs);
+
+    if ('IntersectionObserver' in window) {
+      visibilityObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          setSandboxVisible(entry.isIntersecting && entry.intersectionRatio >= 0.18);
+        });
+      }, { threshold: [0, 0.18, 0.45] });
+      visibilityObserver.observe(section);
+    } else {
+      setSandboxVisible(true);
+    }
+
+    function measureBoard() {
+      const rect = board.getBoundingClientRect();
+      const mobile = window.innerWidth <= 800;
+      boardWidth = Math.max(rect.width, 1);
+      boardHeight = Math.max(rect.height, 1);
+      visibleCount = mobile ? 5 : shards.length;
+
+      shards.forEach(function (shard) {
+        shard.width = clamp(boardWidth * shard.widthRatio * (mobile ? 1.12 : 1), mobile ? 116 : 170, mobile ? 210 : 330);
+        shard.height = shard.width * shard.aspect;
+        shard.x = shard.slot[0] * Math.max(boardWidth - shard.width, 0);
+        shard.y = shard.slot[1] * Math.max(boardHeight - shard.height, 0);
+        shard.centerX = shard.x + shard.width / 2;
+        shard.centerY = shard.y + shard.height / 2;
+        shard.element.style.setProperty('--shard-x', shard.x.toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-y', shard.y.toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-width', shard.width.toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-height', shard.height.toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-rotation', shard.rotation.toFixed(2) + 'deg');
+        shard.element.style.setProperty('--board-width', boardWidth.toFixed(1) + 'px');
+        shard.element.style.setProperty('--board-height', boardHeight.toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-map-left', (-shard.x).toFixed(1) + 'px');
+        shard.element.style.setProperty('--shard-map-top', (-shard.y).toFixed(1) + 'px');
+      });
+
+      currentX = clamp(currentX || boardWidth * 0.08, 0, boardWidth);
+      currentY = clamp(currentY || boardHeight * 0.42, 0, boardHeight);
+      targetX = clamp(targetX || currentX, 0, boardWidth);
+      targetY = clamp(targetY || currentY, 0, boardHeight);
+      updateProbe();
+    }
+
+    function setSandboxVisible(isVisible) {
+      if (reducedMotion.matches) {
+        visible = true;
+        introStart = 0;
+        mobileStart = 0;
+        section.classList.add('is-active');
+        targetX = currentX = boardWidth * 0.5;
+        targetY = currentY = boardHeight * 0.5;
+        clearFocus();
+        updateProbe();
+        return;
+      }
+
+      if (visible === isVisible) return;
+
+      visible = isVisible;
+      section.classList.toggle('is-active', isVisible);
+      pointerActive = false;
+      clearFocus();
+
+      if (isVisible) {
+        currentX = boardWidth * 0.08;
+        currentY = boardHeight * 0.42;
+        targetX = currentX;
+        targetY = currentY;
+        introStart = performance.now();
+        mobileStart = introStart;
+        requestSandboxFrame();
+      } else {
+        introStart = 0;
+        mobileStart = 0;
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+    }
+
+    function renderSandbox(time) {
+      frameId = 0;
+      if (!visible || reducedMotion.matches) return;
+
+      let guided = false;
+      let keepAnimating = false;
+
+      if (!pointerActive && finePointer.matches && introStart) {
+        const progress = clamp((time - introStart) / 1450, 0, 1);
+        targetX = lerp(boardWidth * 0.08, boardWidth * 0.5, easeInOut(progress));
+        targetY = boardHeight * (0.42 + Math.sin(progress * Math.PI) * 0.08);
+        guided = true;
+        keepAnimating = progress < 1;
+      } else if (!pointerActive && !finePointer.matches && mobileStart) {
+        const duration = 5200;
+        const progress = clamp((time - mobileStart) / duration, 0, 1);
+        const scaled = progress * (waypoints.length - 1);
+        const segment = Math.min(Math.floor(scaled), waypoints.length - 2);
+        const amount = easeInOut(scaled - segment);
+        targetX = lerp(waypoints[segment][0], waypoints[segment + 1][0], amount) * boardWidth;
+        targetY = lerp(waypoints[segment][1], waypoints[segment + 1][1], amount) * boardHeight;
+        guided = true;
+        keepAnimating = progress < 1;
+      }
+
+      currentX = lerp(currentX, targetX, 0.18);
+      currentY = lerp(currentY, targetY, 0.18);
+      keepAnimating = keepAnimating || Math.abs(currentX - targetX) > 0.2 || Math.abs(currentY - targetY) > 0.2;
+
+      if (pointerActive || guided) focusNearestShard(currentX, currentY);
+      else clearFocus();
+      updateProbe();
+
+      if (keepAnimating) requestSandboxFrame();
+    }
+
+    function focusNearestShard(x, y) {
+      let nearestIndex = -1;
+      let nearestDistance = Infinity;
+      const radius = Math.max(220, boardWidth * 0.28);
+
+      for (let index = 0; index < visibleCount; index += 1) {
+        const shard = shards[index];
+        const dx = shard.centerX - x;
+        const dy = shard.centerY - y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < nearestDistance && distance < radius) {
+          nearestDistance = distance;
+          nearestIndex = index;
+        }
+      }
+
+      setFocusedShard(nearestIndex);
+    }
+
+    function setFocusedShard(index) {
+      if (activeIndex === index) return;
+      activeIndex = index;
+      board.classList.toggle('has-focus', index >= 0);
+      shards.forEach(function (shard, shardIndex) {
+        shard.element.classList.toggle('is-focused', shardIndex === index);
+      });
+    }
+
+    function clearFocus() {
+      setFocusedShard(-1);
+    }
+
+    function updateProbe() {
+      const normalizedX = clamp(currentX / boardWidth, 0, 1);
+      const normalizedY = clamp(currentY / boardHeight, 0, 1);
+      const altitude = Math.round(atlasData.sample(normalizedX, normalizedY) * 2400);
+      probe.style.setProperty('--probe-x', currentX.toFixed(1) + 'px');
+      probe.style.setProperty('--probe-y', currentY.toFixed(1) + 'px');
+
+      if (readoutX) readoutX.textContent = (normalizedX * 100).toFixed(2).padStart(6, '0');
+      if (readoutY) readoutY.textContent = (normalizedY * 100).toFixed(2).padStart(6, '0');
+      if (readoutAlt) readoutAlt.textContent = String(altitude).padStart(4, '0');
+
+      if (activeIndex >= 0) {
+        const shard = shards[activeIndex];
+        const dx = shard.centerX - currentX;
+        const dy = shard.centerY - currentY;
+        measureLine.style.setProperty('--measure-x', currentX.toFixed(1) + 'px');
+        measureLine.style.setProperty('--measure-y', currentY.toFixed(1) + 'px');
+        measureLine.style.setProperty('--measure-length', Math.sqrt(dx * dx + dy * dy).toFixed(1) + 'px');
+        measureLine.style.setProperty('--measure-angle', (Math.atan2(dy, dx) * 180 / Math.PI).toFixed(2) + 'deg');
+      }
+    }
+
+    function handleSandboxPointer(event) {
+      if (!visible || reducedMotion.matches || !finePointer.matches) return;
+      const rect = board.getBoundingClientRect();
+      pointerActive = true;
+      introStart = 0;
+      targetX = clamp(event.clientX - rect.left, 0, boardWidth);
+      targetY = clamp(event.clientY - rect.top, 0, boardHeight);
+      requestSandboxFrame();
+    }
+
+    function handleSandboxLeave() {
+      if (reducedMotion.matches) return;
+      pointerActive = false;
+      introStart = 0;
+      targetX = boardWidth * 0.5;
+      targetY = boardHeight * 0.5;
+      clearFocus();
+      requestSandboxFrame();
+    }
+
+    function requestSandboxFrame() {
+      if (visible && !frameId) frameId = requestAnimationFrame(renderSandbox);
+    }
+
+    function handleSandboxResize() {
+      measureBoard();
+      requestSandboxFrame();
+    }
+
+    function syncSandboxInputs() {
+      board.removeEventListener('pointermove', handleSandboxPointer);
+      board.removeEventListener('pointerleave', handleSandboxLeave);
+      if (!reducedMotion.matches && finePointer.matches) {
+        board.addEventListener('pointermove', handleSandboxPointer, { passive: true });
+        board.addEventListener('pointerleave', handleSandboxLeave, { passive: true });
+      }
+    }
+
+    function syncSandboxMotion() {
+      syncSandboxInputs();
+      if (reducedMotion.matches) {
+        setSandboxVisible(true);
+      } else {
+        const rect = section.getBoundingClientRect();
+        const shouldBeVisible = rect.bottom > window.innerHeight * 0.18 && rect.top < window.innerHeight * 0.82;
+        if (shouldBeVisible && visible && !introStart) visible = false;
+        setSandboxVisible(shouldBeVisible);
+      }
+    }
+  }
+
   function getSessionSeed() {
     const key = 'chaos-contour-seed-v1';
     let seed = 0;
@@ -327,7 +682,7 @@
     return seed;
   }
 
-  function makeContourTexture(seed) {
+  function makeContourAtlas(seed) {
     const random = mulberry32(seed ^ 0x9e3779b9);
     const width = 1200;
     const height = 760;
@@ -384,13 +739,29 @@
     }).join('');
     const label = String(seed >>> 0).padStart(10, '0').slice(-10);
 
-    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">' +
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">' +
       '<g fill="none" stroke="white" opacity="0.18" stroke-width="1">' +
       '<path d="M0 152H1200M0 304H1200M0 456H1200M0 608H1200M240 0V760M480 0V760M720 0V760M960 0V760"/>' +
       '</g>' + contours +
       '<g fill="white" opacity="0.65" font-family="monospace" font-size="15" letter-spacing="3">' +
       '<text x="32" y="42">FIELD / ' + label + '</text><text x="982" y="724">ALT 001—∞</text>' +
       '</g></svg>';
+
+    return {
+      seed: seed,
+      svg: svg,
+      sample: function (normalizedX, normalizedY) {
+        const gridX = clamp(normalizedX, 0, 1) * columns;
+        const gridY = clamp(normalizedY, 0, 1) * rows;
+        const left = Math.min(Math.floor(gridX), columns - 1);
+        const top = Math.min(Math.floor(gridY), rows - 1);
+        const amountX = gridX - left;
+        const amountY = gridY - top;
+        const upper = lerp(values[top][left], values[top][left + 1], amountX);
+        const lower = lerp(values[top + 1][left], values[top + 1][left + 1], amountX);
+        return lerp(upper, lower, amountY);
+      }
+    };
   }
 
   function contourSegments(values, columns, rows, width, height, level) {
