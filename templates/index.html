@@ -6,7 +6,9 @@
 {% block content %}
 {% set writing = get_section(path="writing/_index.md") %}
 <div class="fragment-region" data-fragment-region>
-<div class="fragment-scene" data-fragment-scene aria-hidden="true"></div>
+<div class="fragment-scene" data-fragment-scene aria-hidden="true">
+  <canvas class="fragment-scene__canvas" data-fragment-canvas></canvas>
+</div>
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero__index" aria-hidden="true">001—∞</div>
   <div class="hero__content">
@@ -20,28 +22,6 @@
   <div class="hero__symbol" aria-hidden="true">
     <span>ヌー</span><span>ル</span><i></i><span>CHA</span><span>OS</span>
   </div>
-</section>
-
-<section class="post-feed" aria-labelledby="latest-posts">
-  <header class="section-heading">
-    <h2 id="latest-posts" class="atlas-reveal atlas-reveal--section" data-atlas-reveal>
-      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">Latest Posts</span></span>
-    </h2>
-    <span>{{ writing.pages | length }} POST{% if writing.pages | length != 1 %}S{% endif %}</span>
-  </header>
-
-  {% if writing.pages %}
-    <div class="post-grid">
-      {% for post in writing.pages %}
-        {{<post_card post featured={loop.first} />}}
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="empty-state">
-      <p>It is quiet here for now.</p>
-      <span>Add the first Markdown post to <code>content/writing</code>.</span>
-    </div>
-  {% endif %}
 </section>
 </div>
 
@@ -68,6 +48,28 @@
       <span class="atlas-sandbox__frame">SHEET 001—∞ / SESSION FIELD</span>
     </div>
   </div>
+</section>
+
+<section class="post-feed" aria-labelledby="latest-posts">
+  <header class="section-heading">
+    <h2 id="latest-posts" class="atlas-reveal atlas-reveal--section" data-atlas-reveal>
+      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">Latest Posts</span></span>
+    </h2>
+    <span>{{ writing.pages | length }} POST{% if writing.pages | length != 1 %}S{% endif %}</span>
+  </header>
+
+  {% if writing.pages %}
+    <div class="post-grid">
+      {% for post in writing.pages %}
+        {{<post_card post featured={loop.first} />}}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>It is quiet here for now.</p>
+      <span>Add the first Markdown post to <code>content/writing</code>.</span>
+    </div>
+  {% endif %}
 </section>
 
 <section class="manifesto">
