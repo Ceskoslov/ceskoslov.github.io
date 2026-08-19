@@ -255,6 +255,116 @@ svg {
   transform: rotate(12deg);
 }
 
+/* Session-generated contour fragments */
+.fragment-region {
+  position: relative;
+  isolation: isolate;
+}
+
+.fragment-region > .hero,
+.fragment-region > .post-feed {
+  position: relative;
+  z-index: 1;
+}
+
+.fragment-scene {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  opacity: var(--scene-opacity, 1);
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.fragment-scene::before,
+.fragment-scene::after {
+  position: absolute;
+  width: clamp(8rem, 18vw, 15rem);
+  height: clamp(5rem, 11vw, 9rem);
+  content: "";
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background-image: repeating-radial-gradient(
+    ellipse at 42% 55%,
+    transparent 0 0.8rem,
+    color-mix(in srgb, var(--ink) 16%, transparent) 0.86rem 0.9rem
+  );
+  opacity: 0.72;
+  transform: rotate(-7deg);
+  transition: opacity 180ms ease;
+}
+
+.fragment-scene::before {
+  top: 12%;
+  right: 3%;
+  clip-path: polygon(7% 8%, 94% 0, 100% 76%, 73% 100%, 0 89%);
+}
+
+.fragment-scene::after {
+  top: 63%;
+  left: 4%;
+  clip-path: polygon(0 15%, 88% 0, 100% 72%, 61% 100%, 8% 86%);
+  transform: rotate(9deg);
+}
+
+.fragment-scene.is-ready::before,
+.fragment-scene.is-ready::after {
+  opacity: 0;
+}
+
+.map-fragment {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--fragment-width);
+  height: var(--fragment-height);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+  background: color-mix(in srgb, var(--paper-deep) 78%, transparent);
+  clip-path: var(--fragment-shape);
+  opacity: var(--fragment-opacity, 0.52);
+  transform: translate3d(
+    calc(var(--fragment-x, 0px) + var(--pointer-x, 0px)),
+    calc(var(--fragment-y, 0px) + var(--pointer-y, 0px)),
+    0
+  ) rotate(calc(var(--fragment-rotation, 0deg) + var(--pointer-rotation, 0deg))) scale(var(--fragment-scale, 1));
+  transform-origin: center;
+  will-change: transform;
+}
+
+.map-fragment::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  border-top: 1px solid color-mix(in srgb, var(--accent) 58%, transparent);
+  background: linear-gradient(
+    126deg,
+    transparent 0 72%,
+    color-mix(in srgb, var(--accent) 18%, transparent) 72% 73%,
+    transparent 73%
+  );
+}
+
+.map-fragment__texture {
+  position: absolute;
+  top: var(--map-top, 0);
+  left: var(--map-left, 0);
+  width: var(--map-width);
+  height: var(--map-height);
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+  -webkit-mask-image: var(--atlas-texture);
+  mask-image: var(--atlas-texture);
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+}
+
 .hero {
   position: relative;
   display: grid;
@@ -1136,6 +1246,14 @@ svg {
     padding: 5.5rem 0 4rem;
   }
 
+  .map-fragment:nth-child(n + 8) {
+    display: none;
+  }
+
+  .map-fragment {
+    opacity: min(var(--fragment-opacity, 0.42), 0.42);
+  }
+
   .hero__index,
   .hero__symbol {
     display: none;
@@ -1266,6 +1384,10 @@ svg {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+
+  .map-fragment {
+    will-change: auto;
+  }
 }
 
 @media print {
@@ -1278,6 +1400,7 @@ svg {
   .site-header,
   .site-footer,
   .chaos-field,
+  .fragment-scene,
   .post-navigation,
   .back-link {
     display: none;
