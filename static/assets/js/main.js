@@ -53,215 +53,92 @@
     }
   });
 
-  const fragmentScene = document.querySelector('[data-fragment-scene]');
-  const fragmentRegion = document.querySelector('[data-fragment-region]');
-  const atlasSandbox = document.querySelector('[data-atlas-sandbox]');
+  const atlasBackground = document.querySelector('[data-atlas-background]');
   const atlasMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let atlas = null;
 
-  if ((fragmentScene && fragmentRegion) || atlasSandbox) {
+  if (atlasBackground) {
     atlas = makeContourAtlas(getSessionSeed());
   }
 
-  if (fragmentScene && fragmentRegion && atlas) {
-    initContourFragments(fragmentScene, fragmentRegion, atlas);
-  }
-
-  if (atlasSandbox && atlas) {
-    initAtlasSandbox(atlasSandbox, atlas, atlasMotion);
+  if (atlasBackground && atlas) {
+    initPageAtlasBackground(atlasBackground, atlas, atlasMotion);
   }
 
   initAtlasReveals(atlasMotion);
   initCardSurvey(atlas ? atlas.seed : 1);
 
-  function initContourFragments(scene, region, atlasData) {
-    const canvas = scene.querySelector('[data-fragment-canvas]');
-    const hero = region.querySelector('.hero');
-    const context = canvas ? canvas.getContext('2d') : null;
-    const renderer = createAtlasHeatRenderer(atlasData);
-    const random = mulberry32(atlasData.seed ^ 0x7f4a7c15);
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 801px)');
+  function initPageAtlasBackground(canvas, atlasData, reducedMotion) {
+    const renderer = createAtlasHeatRenderer(atlasData, canvas);
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const slots = shuffled([
-      [0.02, 0.08], [0.3, 0.04], [0.66, 0.07], [0.82, 0.2],
-      [0.05, 0.34], [0.35, 0.3], [0.68, 0.39], [0.12, 0.57],
-      [0.46, 0.59], [0.78, 0.63], [0.05, 0.8], [0.6, 0.82]
-    ], random);
-    const shapes = [
-      [[0.05, 0.08], [0.72, 0], [0.98, 0.18], [1, 0.75], [0.72, 1], [0, 0.88]],
-      [[0, 0.16], [0.62, 0], [1, 0.3], [0.91, 0.94], [0.2, 1], [0.04, 0.64]],
-      [[0.1, 0], [0.76, 0.08], [1, 0.48], [0.88, 0.9], [0.54, 1], [0, 0.78]],
-      [[0, 0.05], [0.8, 0], [1, 0.64], [0.81, 1], [0.12, 0.91], [0.02, 0.42]]
-    ];
-    const rectangle = [[0, 0], [0.5, 0], [1, 0], [1, 1], [0.5, 1], [0, 1]];
-    const fragments = slots.map(function (slot, index) {
-      return {
-        slot: slot,
-        column: index % 4,
-        row: Math.floor(index / 4),
-        scale: 0.58 + random() * 0.36,
-        rotation: -13 + random() * 26,
-        shape: shapes[Math.floor(random() * shapes.length)]
-      };
-    });
     let width = 1;
     let height = 1;
-    let scrollProgress = 0;
     let targetX = 0;
     let targetY = 0;
     let currentX = 0;
     let currentY = 0;
     let motionEnergy = 0;
-    let heatEnergy = 0;
+    let fieldEnergy = 0;
     let phase = 0;
     let lastPointerTime = 0;
     let pointerActive = false;
     let frameId = 0;
-    let heatDirty = true;
-
-    if (!canvas || !hero || !context) return;
 
     measure();
-    syncMotionMode();
-    scene.classList.add('is-ready');
+    syncInteraction();
     window.addEventListener('resize', handleResize, { passive: true });
-    addMediaListener(reducedMotion, syncMotionMode);
-    addMediaListener(finePointer, syncPointerMode);
-    addMediaListener(systemTheme, refreshColors);
+    addMediaListener(reducedMotion, syncInteraction);
+    addMediaListener(systemTheme, refreshPalette);
     if ('MutationObserver' in window) {
-      new MutationObserver(refreshColors).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+      new MutationObserver(refreshPalette).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
     function measure() {
-      const ratio = window.devicePixelRatio || 1;
-      width = Math.max(scene.clientWidth, 1);
-      height = Math.max(hero.offsetHeight, 1);
-      scene.style.height = Math.ceil(height) + 'px';
-      canvas.width = Math.max(Math.round(width * ratio), 1);
-      canvas.height = Math.max(Math.round(height * ratio), 1);
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      renderer.resize(width, height, ratio);
-      currentX = targetX = width * 0.5;
-      currentY = targetY = height * 0.44;
-      heatDirty = true;
-      updateScrollProgress();
-      renderHeat();
-      drawFragments();
+      width = Math.max(window.innerWidth, 1);
+      height = Math.max(window.innerHeight, 1);
+      renderer.resize(width, height, window.devicePixelRatio || 1);
+      currentX = targetX = clamp(currentX || width * 0.5, 0, width);
+      currentY = targetY = clamp(currentY || height * 0.5, 0, height);
+      renderer.render(currentX, currentY, reducedMotion.matches ? 0 : fieldEnergy, phase);
     }
 
-    function updateScrollProgress() {
-      if (reducedMotion.matches) {
-        scrollProgress = 0.22;
-        return;
-      }
-      const regionTop = region.getBoundingClientRect().top + window.scrollY;
-      scrollProgress = clamp((window.scrollY - regionTop) / Math.max(height * 0.78, 1), 0, 1);
-    }
-
-    function renderHeat() {
-      renderer.render(currentX, currentY, heatEnergy, phase);
-      heatDirty = false;
-    }
-
-    function drawFragments() {
-      const progress = easeInOut(scrollProgress);
-      const tileWidth = width / 4;
-      const tileHeight = height / 3;
-      const restingWidth = Math.min(width * (width > 900 ? 0.8 : 0.94), 1360);
-      const restingHeight = Math.min(height * 0.84, restingWidth * 0.625);
-      const restingLeft = (width - restingWidth) / 2;
-      const restingTop = (height - restingHeight) / 2;
-      const restingTileWidth = restingWidth / 4;
-      const restingTileHeight = restingHeight / 3;
-      context.clearRect(0, 0, width, height);
-
-      fragments.forEach(function (fragment) {
-        const endX = fragment.column * tileWidth;
-        const endY = fragment.row * tileHeight;
-        const endCenterX = endX + tileWidth / 2;
-        const endCenterY = endY + tileHeight / 2;
-        const startWidth = restingTileWidth * fragment.scale;
-        const startHeight = restingTileHeight * fragment.scale;
-        const startCenterX = restingLeft + fragment.slot[0] * Math.max(restingWidth - startWidth, 0) + startWidth / 2;
-        const startCenterY = restingTop + fragment.slot[1] * Math.max(restingHeight - startHeight, 0) + startHeight / 2;
-        const currentWidth = lerp(startWidth, tileWidth, progress);
-        const currentHeight = lerp(startHeight, tileHeight, progress);
-        const currentCenterX = lerp(startCenterX, endCenterX, progress);
-        const currentCenterY = lerp(startCenterY, endCenterY, progress);
-
-        context.save();
-        context.translate(currentCenterX, currentCenterY);
-        context.rotate(lerp(fragment.rotation, 0, progress) * Math.PI / 180);
-        context.scale(currentWidth / tileWidth, currentHeight / tileHeight);
-        context.beginPath();
-        fragment.shape.forEach(function (point, index) {
-          const x = lerp(point[0], rectangle[index][0], progress) * tileWidth - tileWidth / 2;
-          const y = lerp(point[1], rectangle[index][1], progress) * tileHeight - tileHeight / 2;
-          if (index === 0) context.moveTo(x, y);
-          else context.lineTo(x, y);
-        });
-        context.closePath();
-        context.clip();
-        context.globalAlpha = lerp(0.58, 0.94, progress);
-        renderer.drawTo(context, width, height, -endCenterX, -endCenterY);
-        context.restore();
-      });
-    }
-
-    function renderFrame(time) {
+    function renderFrame() {
       frameId = 0;
-      const desiredEnergy = pointerActive ? Math.max(0.12, motionEnergy) : 0;
-      currentX = lerp(currentX, targetX, 0.16);
-      currentY = lerp(currentY, targetY, 0.16);
-      motionEnergy *= 0.86;
-      heatEnergy = lerp(heatEnergy, desiredEnergy, 0.14);
-      phase += heatEnergy * 0.18;
-      const needsAnotherFrame =
-        Math.abs(currentX - targetX) > 0.2 ||
-        Math.abs(currentY - targetY) > 0.2 ||
-        Math.abs(heatEnergy - desiredEnergy) > 0.003 ||
-        motionEnergy > 0.01;
+      const desiredEnergy = pointerActive ? Math.max(0.16, motionEnergy) : 0;
+      currentX = lerp(currentX, targetX, 0.2);
+      currentY = lerp(currentY, targetY, 0.2);
+      motionEnergy *= 0.84;
+      fieldEnergy = lerp(fieldEnergy, desiredEnergy, 0.16);
+      phase += fieldEnergy * 0.2;
+      renderer.render(currentX, currentY, fieldEnergy, phase);
 
-      if (heatDirty || needsAnotherFrame) {
-        renderHeat();
-      }
-      drawFragments();
-      if (needsAnotherFrame || heatDirty) requestFrame();
-    }
-
-    function handleScroll() {
-      updateScrollProgress();
-      drawFragments();
+      if (
+        Math.abs(currentX - targetX) > 0.15 ||
+        Math.abs(currentY - targetY) > 0.15 ||
+        Math.abs(fieldEnergy - desiredEnergy) > 0.002 ||
+        motionEnergy > 0.008
+      ) requestFrame();
     }
 
     function handlePointer(event) {
-      if (reducedMotion.matches || !finePointer.matches) return;
-      const rect = scene.getBoundingClientRect();
-      if (event.clientY < rect.top || event.clientY > rect.bottom) {
-        if (pointerActive) clearPointer();
-        return;
-      }
+      if (reducedMotion.matches || (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen')) return;
       const now = performance.now();
-      const nextX = clamp(event.clientX - rect.left, 0, width);
-      const nextY = clamp(event.clientY - rect.top, 0, height);
+      const nextX = clamp(event.clientX, 0, width);
+      const nextY = clamp(event.clientY, 0, height);
       const elapsed = Math.max(now - lastPointerTime, 16);
       const distance = Math.sqrt(Math.pow(nextX - targetX, 2) + Math.pow(nextY - targetY, 2));
       pointerActive = true;
-      motionEnergy = Math.max(motionEnergy, clamp(distance / elapsed / 1.2, 0.16, 0.9));
+      motionEnergy = Math.max(motionEnergy, clamp(distance / elapsed / 1.1, 0.2, 1));
       targetX = nextX;
       targetY = nextY;
       lastPointerTime = now;
-      heatDirty = true;
       requestFrame();
     }
 
     function clearPointer() {
+      if (!pointerActive) return;
       pointerActive = false;
       motionEnergy = 0;
-      targetX = width * 0.5;
-      targetY = height * 0.44;
-      heatDirty = true;
       requestFrame();
     }
 
@@ -271,34 +148,25 @@
 
     function handleResize() {
       measure();
-      syncPointerMode();
+      requestFrame();
     }
 
-    function refreshColors() {
+    function refreshPalette() {
       renderer.refreshPalette();
-      heatDirty = true;
-      renderHeat();
-      drawFragments();
+      renderer.render(currentX, currentY, fieldEnergy, phase);
     }
 
-    function syncMotionMode() {
-      window.removeEventListener('scroll', handleScroll);
-      if (!reducedMotion.matches) window.addEventListener('scroll', handleScroll, { passive: true });
-      syncPointerMode();
-      updateScrollProgress();
-      heatEnergy = 0;
-      heatDirty = true;
-      renderHeat();
-      drawFragments();
-    }
-
-    function syncPointerMode() {
+    function syncInteraction() {
       window.removeEventListener('pointermove', handlePointer);
       document.documentElement.removeEventListener('pointerleave', clearPointer);
-      if (!reducedMotion.matches && finePointer.matches) {
+      pointerActive = false;
+      motionEnergy = 0;
+      fieldEnergy = 0;
+      if (!reducedMotion.matches) {
         window.addEventListener('pointermove', handlePointer, { passive: true });
         document.documentElement.addEventListener('pointerleave', clearPointer, { passive: true });
       }
+      renderer.render(currentX, currentY, 0, phase);
     }
   }
 
@@ -347,239 +215,6 @@
       const y = (8 + random() * 84).toFixed(2).padStart(5, '0');
       coordinate.textContent = x + ' / ' + y;
     });
-  }
-
-  function initAtlasSandbox(section, atlasData, reducedMotion) {
-    const board = section.querySelector('[data-atlas-board]');
-    const canvas = section.querySelector('[data-atlas-heat]');
-    const probe = section.querySelector('[data-atlas-probe]');
-    const fieldLabel = section.querySelector('[data-atlas-field]');
-    const readoutX = section.querySelector('[data-atlas-x]');
-    const readoutY = section.querySelector('[data-atlas-y]');
-    const readoutAlt = section.querySelector('[data-atlas-alt]');
-    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 801px)');
-    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const waypoints = [[0.14, 0.3], [0.7, 0.24], [0.42, 0.62], [0.78, 0.72], [0.52, 0.48]];
-    const renderer = createAtlasHeatRenderer(atlasData, canvas);
-    let boardWidth = 1;
-    let boardHeight = 1;
-    let visible = false;
-    let pointerActive = false;
-    let targetX = 0;
-    let targetY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let motionEnergy = 0;
-    let heatEnergy = 0;
-    let phase = 0;
-    let lastPointerTime = 0;
-    let introStart = 0;
-    let mobileStart = 0;
-    let frameId = 0;
-
-    if (!board || !canvas || !probe) return;
-    if (fieldLabel) fieldLabel.textContent = String(atlasData.seed >>> 0).padStart(10, '0').slice(-10);
-
-    measureBoard();
-    syncSandboxMotion();
-    window.addEventListener('resize', handleSandboxResize, { passive: true });
-    addMediaListener(reducedMotion, syncSandboxMotion);
-    addMediaListener(finePointer, syncSandboxInputs);
-    addMediaListener(systemTheme, refreshPalette);
-    if ('MutationObserver' in window) {
-      new MutationObserver(refreshPalette).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
-    }
-
-    if ('IntersectionObserver' in window) {
-      const visibilityObserver = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-          setSandboxVisible(entry.isIntersecting && entry.intersectionRatio >= 0.18);
-        });
-      }, { threshold: [0, 0.18, 0.45] });
-      visibilityObserver.observe(section);
-    } else {
-      setSandboxVisible(true);
-    }
-
-    function measureBoard() {
-      const rect = board.getBoundingClientRect();
-      const ratio = window.devicePixelRatio || 1;
-      boardWidth = Math.max(rect.width, 1);
-      boardHeight = Math.max(rect.height, 1);
-      renderer.resize(boardWidth, boardHeight, ratio);
-
-      currentX = clamp(currentX || boardWidth * 0.08, 0, boardWidth);
-      currentY = clamp(currentY || boardHeight * 0.42, 0, boardHeight);
-      targetX = clamp(targetX || currentX, 0, boardWidth);
-      targetY = clamp(targetY || currentY, 0, boardHeight);
-      refreshPalette();
-      updateProbe();
-    }
-
-    function refreshPalette() {
-      renderer.refreshPalette();
-      renderHeatField();
-    }
-
-    function renderHeatField() {
-      renderer.render(currentX, currentY, heatEnergy, phase);
-    }
-
-    function setSandboxVisible(isVisible) {
-      if (reducedMotion.matches) {
-        visible = true;
-        introStart = 0;
-        mobileStart = 0;
-        section.classList.add('is-active');
-        targetX = currentX = boardWidth * 0.5;
-        targetY = currentY = boardHeight * 0.5;
-        heatEnergy = motionEnergy = 0;
-        renderHeatField();
-        updateProbe();
-        return;
-      }
-
-      if (visible === isVisible) return;
-      visible = isVisible;
-      section.classList.toggle('is-active', isVisible);
-      pointerActive = false;
-
-      if (isVisible) {
-        currentX = boardWidth * 0.08;
-        currentY = boardHeight * 0.42;
-        targetX = currentX;
-        targetY = currentY;
-        heatEnergy = 0;
-        motionEnergy = 0;
-        phase = 0;
-        introStart = performance.now();
-        mobileStart = introStart;
-        requestSandboxFrame();
-      } else {
-        introStart = 0;
-        mobileStart = 0;
-        if (frameId) cancelAnimationFrame(frameId);
-        frameId = 0;
-      }
-    }
-
-    function renderSandbox(time) {
-      frameId = 0;
-      if (!visible || reducedMotion.matches) return;
-      let guided = false;
-      let keepAnimating = false;
-
-      if (!pointerActive && finePointer.matches && introStart) {
-        const progress = clamp((time - introStart) / 1450, 0, 1);
-        targetX = lerp(boardWidth * 0.08, boardWidth * 0.5, easeInOut(progress));
-        targetY = boardHeight * (0.42 + Math.sin(progress * Math.PI) * 0.08);
-        guided = true;
-        keepAnimating = progress < 1;
-      } else if (!pointerActive && !finePointer.matches && mobileStart) {
-        const progress = clamp((time - mobileStart) / 5200, 0, 1);
-        const scaled = progress * (waypoints.length - 1);
-        const segment = Math.min(Math.floor(scaled), waypoints.length - 2);
-        const amount = easeInOut(scaled - segment);
-        targetX = lerp(waypoints[segment][0], waypoints[segment + 1][0], amount) * boardWidth;
-        targetY = lerp(waypoints[segment][1], waypoints[segment + 1][1], amount) * boardHeight;
-        guided = true;
-        keepAnimating = progress < 1;
-      }
-
-      currentX = lerp(currentX, targetX, 0.18);
-      currentY = lerp(currentY, targetY, 0.18);
-      motionEnergy *= 0.86;
-      const desiredEnergy = pointerActive ? Math.max(0.14, motionEnergy) : (guided ? 0.3 : 0);
-      heatEnergy = lerp(heatEnergy, desiredEnergy, 0.14);
-      phase += heatEnergy * 0.18;
-      keepAnimating = keepAnimating ||
-        Math.abs(currentX - targetX) > 0.2 ||
-        Math.abs(currentY - targetY) > 0.2 ||
-        Math.abs(heatEnergy - desiredEnergy) > 0.003 ||
-        motionEnergy > 0.01;
-
-      renderHeatField();
-      updateProbe();
-      if (keepAnimating) requestSandboxFrame();
-    }
-
-    function updateProbe() {
-      const normalizedX = clamp(currentX / boardWidth, 0, 1);
-      const normalizedY = clamp(currentY / boardHeight, 0, 1);
-      const displayAspect = boardWidth / boardHeight;
-      const atlasAspect = 1.6;
-      let mapX = normalizedX;
-      let mapY = normalizedY;
-      if (displayAspect > atlasAspect) mapY = (mapY - 0.5) * atlasAspect / displayAspect + 0.5;
-      else mapX = (mapX - 0.5) * displayAspect / atlasAspect + 0.5;
-      const altitude = Math.round(atlasData.sample(mapX, mapY) * 2400);
-      probe.style.setProperty('--probe-x', currentX.toFixed(1) + 'px');
-      probe.style.setProperty('--probe-y', currentY.toFixed(1) + 'px');
-      if (readoutX) readoutX.textContent = (mapX * 100).toFixed(2).padStart(6, '0');
-      if (readoutY) readoutY.textContent = (mapY * 100).toFixed(2).padStart(6, '0');
-      if (readoutAlt) readoutAlt.textContent = String(altitude).padStart(4, '0');
-    }
-
-    function handleSandboxPointer(event) {
-      if (!visible || reducedMotion.matches || !finePointer.matches) return;
-      const rect = board.getBoundingClientRect();
-      const now = performance.now();
-      const nextX = clamp(event.clientX - rect.left, 0, boardWidth);
-      const nextY = clamp(event.clientY - rect.top, 0, boardHeight);
-      const elapsed = Math.max(now - lastPointerTime, 16);
-      const distance = Math.sqrt(Math.pow(nextX - targetX, 2) + Math.pow(nextY - targetY, 2));
-
-      pointerActive = true;
-      introStart = 0;
-      mobileStart = 0;
-      motionEnergy = Math.max(motionEnergy, clamp(distance / elapsed / 1.2, 0.18, 1));
-      targetX = nextX;
-      targetY = nextY;
-      lastPointerTime = now;
-      requestSandboxFrame();
-    }
-
-    function handleSandboxLeave() {
-      if (reducedMotion.matches) return;
-      pointerActive = false;
-      introStart = 0;
-      mobileStart = 0;
-      motionEnergy = 0;
-      targetX = boardWidth * 0.5;
-      targetY = boardHeight * 0.5;
-      requestSandboxFrame();
-    }
-
-    function requestSandboxFrame() {
-      if (visible && !frameId) frameId = requestAnimationFrame(renderSandbox);
-    }
-
-    function handleSandboxResize() {
-      measureBoard();
-      requestSandboxFrame();
-    }
-
-    function syncSandboxInputs() {
-      board.removeEventListener('pointermove', handleSandboxPointer);
-      board.removeEventListener('pointerleave', handleSandboxLeave);
-      if (!reducedMotion.matches && finePointer.matches) {
-        board.addEventListener('pointermove', handleSandboxPointer, { passive: true });
-        board.addEventListener('pointerleave', handleSandboxLeave, { passive: true });
-      }
-    }
-
-    function syncSandboxMotion() {
-      syncSandboxInputs();
-      if (reducedMotion.matches) {
-        setSandboxVisible(true);
-      } else {
-        const rect = section.getBoundingClientRect();
-        const shouldBeVisible = rect.bottom > window.innerHeight * 0.18 && rect.top < window.innerHeight * 0.82;
-        if (shouldBeVisible && visible && !introStart) visible = false;
-        setSandboxVisible(shouldBeVisible);
-      }
-    }
-
   }
 
   function createAtlasHeatRenderer(atlasData, targetCanvas) {
@@ -729,17 +364,18 @@
           const falloff = distance < radius ? Math.pow(1 - distance / radius, 2) : 0;
           const ripple = falloff * Math.sin(distance / radius * Math.PI * 4 - phase) * energy * 0.055;
           const height = clamp(baseField[index] + falloff * energy * 0.18 + ripple, 0, 1);
-          const band = clamp(Math.floor(height * 10) / 9, 0, 1);
+          const band = clamp(Math.floor(height * 12) / 11, 0, 1);
           const shade = 0.16 + band * 0.72;
           let color = mixColor(inkColor, paperColor, shade);
-          const contour = Math.abs(height * 9 - Math.round(height * 9)) < 0.035;
+          const contour = Math.abs(height * 16 - Math.round(height * 16)) < 0.04;
           if (contour) color = mixColor(color, inkColor, 0.82);
 
           const reveal = clamp(1 - distance / radius, 0, 1);
           const longitude = Math.min((column / buffer.width * 14) % 1, 1 - (column / buffer.width * 14) % 1) < 0.009;
           const latitude = Math.min((row / buffer.height * 9) % 1, 1 - (row / buffer.height * 9) % 1) < 0.009;
           const cross = Math.abs(dx) < 1.25 || Math.abs(dy) < 1.25;
-          const grid = Math.max(longitude || latitude ? 0.72 : 0, cross ? 1 : 0) * reveal * gridFade;
+          const localGrid = (longitude || latitude ? 0.72 : 0) * reveal * gridFade;
+          const grid = Math.max(localGrid, cross ? gridFade : 0);
           color = mixColor(color, redColor, grid);
 
           const offset = index * 4;
@@ -751,11 +387,6 @@
       }
 
       context.putImageData(imageData, 0, 0);
-    }
-
-    function drawTo(targetContext, width, height, x, y) {
-      targetContext.imageSmoothingEnabled = true;
-      targetContext.drawImage(buffer, x || 0, y || 0, width, height);
     }
 
     function createProgram(webgl) {
@@ -793,6 +424,11 @@
         '  value += sin((warpedX * 8.1 - warpedY * 5.7) * PI) * 0.045;',
         '  value += cos((warpedX * 15.2 + warpedY * 10.6) * PI) * 0.018;',
         '  value += sin((warpedX * 23.4 - warpedY * 17.8) * PI) * 0.009;',
+        '  float foldA = sin((warpedX * 12.8 + warpedY * 9.6) * PI);',
+        '  float foldB = cos((warpedX * 19.7 - warpedY * 14.3 + foldA * 0.18) * PI);',
+        '  value += sin((warpedX * 31.7 + warpedY * 22.9 + foldB * 0.42) * PI) * 0.014;',
+        '  value += cos((warpedX * 47.3 - warpedY * 36.1 + foldA * 0.28) * PI) * 0.009;',
+        '  value += sin((warpedX * 71.9 + warpedY * 58.7 + foldB * 0.2) * PI) * 0.005;',
         '  return clamp((value - u_minimum) / max(u_range, 0.001), 0.0, 1.0);',
         '}',
         'float gridLine(float coordinate, float cells, float width) {',
@@ -818,17 +454,19 @@
         '  warpedUv += vec2(-direction.y, direction.x) * falloff * u_energy * 0.012;',
         '  float height = terrain(clamp(warpedUv, 0.0, 1.0));',
         '  height = clamp(height + falloff * u_energy * 0.16 + wave * falloff * u_energy * 0.05, 0.0, 1.0);',
-        '  float band = clamp(floor(height * 10.0) / 9.0, 0.0, 1.0);',
+        '  float band = clamp(floor(height * 12.0) / 11.0, 0.0, 1.0);',
         '  vec3 color = mix(u_ink, u_paper, 0.16 + band * 0.72);',
-        '  float contourDistance = abs(height * 9.0 - floor(height * 9.0 + 0.5));',
-        '  float contour = 1.0 - smoothstep(0.024, 0.052, contourDistance);',
+        '  float contourDistance = abs(height * 16.0 - floor(height * 16.0 + 0.5));',
+        '  float contour = 1.0 - smoothstep(0.026, 0.06, contourDistance);',
         '  color = mix(color, u_ink, contour * 0.82);',
         '  float longitude = gridLine(warpedUv.x, 14.0, 14.0 / u_resolution.x * 1.1);',
         '  float latitude = gridLine(warpedUv.y, 9.0, 9.0 / u_resolution.y * 1.1);',
         '  float meridian = 1.0 - smoothstep(0.8, 1.8, abs(delta.x));',
         '  float parallel = 1.0 - smoothstep(0.8, 1.8, abs(delta.y));',
-        '  float gridReveal = falloff * smoothstep(0.02, 0.16, u_energy);',
-        '  float redGrid = max(max(longitude, latitude) * 0.72, max(meridian, parallel)) * gridReveal;',
+        '  float gridReveal = smoothstep(0.02, 0.16, u_energy);',
+        '  float localGrid = max(longitude, latitude) * 0.72 * falloff * gridReveal;',
+        '  float pageCross = max(meridian, parallel) * gridReveal;',
+        '  float redGrid = max(localGrid, pageCross);',
         '  color = mix(color, u_red, clamp(redGrid, 0.0, 1.0));',
         '  gl_FragColor = vec4(color, 0.98);',
         '}'
@@ -881,8 +519,7 @@
     return {
       resize: resize,
       refreshPalette: refreshPalette,
-      render: render,
-      drawTo: drawTo
+      render: render
     };
   }
 
@@ -917,8 +554,8 @@
 
   function makeContourAtlas(seed) {
     const random = mulberry32(seed ^ 0x9e3779b9);
-    const columns = 56;
-    const rows = 38;
+    const columns = 96;
+    const rows = 64;
     const hills = [];
     const values = [];
     let minimum = Infinity;
@@ -951,6 +588,11 @@
         value += Math.sin((warpedX * 8.1 - warpedY * 5.7) * Math.PI) * 0.045;
         value += Math.cos((warpedX * 15.2 + warpedY * 10.6) * Math.PI) * 0.018;
         value += Math.sin((warpedX * 23.4 - warpedY * 17.8) * Math.PI) * 0.009;
+        const foldA = Math.sin((warpedX * 12.8 + warpedY * 9.6) * Math.PI);
+        const foldB = Math.cos((warpedX * 19.7 - warpedY * 14.3 + foldA * 0.18) * Math.PI);
+        value += Math.sin((warpedX * 31.7 + warpedY * 22.9 + foldB * 0.42) * Math.PI) * 0.014;
+        value += Math.cos((warpedX * 47.3 - warpedY * 36.1 + foldA * 0.28) * Math.PI) * 0.009;
+        value += Math.sin((warpedX * 71.9 + warpedY * 58.7 + foldB * 0.2) * Math.PI) * 0.005;
         values[row][column] = value;
         minimum = Math.min(minimum, value);
         maximum = Math.max(maximum, value);
@@ -991,24 +633,9 @@
     };
   }
 
-  function shuffled(items, random) {
-    const copy = items.slice();
-    for (let index = copy.length - 1; index > 0; index -= 1) {
-      const target = Math.floor(random() * (index + 1));
-      const item = copy[index];
-      copy[index] = copy[target];
-      copy[target] = item;
-    }
-    return copy;
-  }
-
   function addMediaListener(query, listener) {
     if (query.addEventListener) query.addEventListener('change', listener);
     else query.addListener(listener);
-  }
-
-  function easeInOut(value) {
-    return value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
   }
 
   function lerp(from, to, amount) {

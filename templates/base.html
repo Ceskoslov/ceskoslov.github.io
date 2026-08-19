@@ -40,6 +40,8 @@
       <span class="chaos-field__circle"></span>
     </div>
 
+    {% block page_background %}{% endblock page_background %}
+
     {% set nav_path = current_path | default(value="") %}
     <header class="site-header">
       <a class="site-logo" href="{{ config.base_url | safe }}" aria-label="{{ config.title }} home">
