@@ -6,7 +6,7 @@
     <span aria-hidden="true">/</span>
     <span>{{ post.reading_time }} min read</span>
   </div>
-  <h2 class="post-card__title">{{ post.title }}</h2>
+  <h2 class="post-card__title"><span class="post-card__title-text">{{ post.title }}</span></h2>
   {% if post.description %}<p class="post-card__description">{{ post.description }}</p>{% endif %}
   {% if post.taxonomies.tags %}
     <ul class="tag-list" aria-label="Post tags">
@@ -14,5 +14,6 @@
     </ul>
   {% endif %}
   <span class="post-card__arrow" aria-hidden="true">↗</span>
+  <span class="post-card__survey" aria-hidden="true"><i></i><b data-card-coordinate>00.00 / 00.00</b></span>
 </article>
 {% endcomponent post_card %}
