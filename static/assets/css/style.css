@@ -92,6 +92,47 @@ body::before {
   pointer-events: none;
 }
 
+.page-atlas-readout {
+  position: fixed;
+  z-index: 4;
+  top: 0;
+  left: 0;
+  display: grid;
+  min-width: 8.2rem;
+  grid-template-columns: repeat(2, auto);
+  gap: 0.35rem 0.8rem;
+  padding: 0.15rem;
+  border: 0;
+  background: transparent;
+  font: 0.56rem/1.2 var(--mono);
+  letter-spacing: 0.08em;
+  opacity: 0;
+  pointer-events: none;
+  text-shadow:
+    0 1px 0 var(--paper),
+    1px 0 0 var(--paper),
+    0 -1px 0 var(--paper),
+    -1px 0 0 var(--paper);
+  transform: translate3d(var(--atlas-readout-x, 50vw), var(--atlas-readout-y, 50vh), 0) scale(0.94);
+  transform-origin: top left;
+  transition: opacity 150ms ease, transform 180ms ease;
+  will-change: transform, opacity;
+}
+
+.page-atlas-readout span:last-child {
+  grid-column: 1 / -1;
+}
+
+.page-atlas-readout b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.page-atlas-readout.is-active {
+  opacity: 1;
+  transform: translate3d(var(--atlas-readout-x), var(--atlas-readout-y), 0) scale(1);
+}
+
 .page-home .site-header,
 .page-home #content,
 .page-home .site-footer {
@@ -1431,6 +1472,7 @@ svg {
   .site-footer,
   .chaos-field,
   .page-atlas-background,
+  .page-atlas-readout,
   .post-navigation,
   .back-link {
     display: none;
