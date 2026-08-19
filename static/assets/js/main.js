@@ -74,7 +74,18 @@
     const readoutX = readout ? readout.querySelector('[data-atlas-x]') : null;
     const readoutY = readout ? readout.querySelector('[data-atlas-y]') : null;
     const readoutAltitude = readout ? readout.querySelector('[data-atlas-alt]') : null;
+    const postContent = document.querySelector('.post-content');
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    const isHome = document.body.classList.contains('page-home');
+    const isPost = document.body.classList.contains('page-post');
+    const isPage = document.body.classList.contains('page-page');
+    const profile = isHome
+      ? { drift: 0.18, density: 24 }
+      : isPost
+        ? { drift: 0.06, density: 21 }
+        : isPage
+          ? { drift: 0.1, density: 24 }
+          : { drift: 0.08, density: 24 };
     let width = 1;
     let height = 1;
     let targetX = 0;
@@ -86,6 +97,12 @@
     let phase = 0;
     let lastPointerTime = 0;
     let pointerActive = false;
+    let scrollTargetX = 0;
+    let scrollTargetY = 0;
+    let scrollCurrentX = 0;
+    let scrollCurrentY = 0;
+    let densityTarget = profile.density;
+    let densityCurrent = profile.density;
     let frameId = 0;
 
     measure();
@@ -103,7 +120,21 @@
       renderer.resize(width, height, window.devicePixelRatio || 1);
       currentX = targetX = clamp(currentX || width * 0.5, 0, width);
       currentY = targetY = clamp(currentY || height * 0.5, 0, height);
-      renderer.render(currentX, currentY, reducedMotion.matches ? 0 : fieldEnergy, phase);
+      updateScrollTargets(true);
+      drawField();
+      updateReadout();
+    }
+
+    function drawField() {
+      renderer.render(
+        currentX,
+        currentY,
+        reducedMotion.matches ? 0 : fieldEnergy,
+        phase,
+        scrollCurrentX,
+        scrollCurrentY,
+        densityCurrent
+      );
     }
 
     function renderFrame() {
@@ -113,20 +144,31 @@
       currentY = lerp(currentY, targetY, 0.2);
       motionEnergy *= 0.84;
       fieldEnergy = lerp(fieldEnergy, desiredEnergy, 0.16);
+      scrollCurrentX = lerp(scrollCurrentX, scrollTargetX, 0.12);
+      scrollCurrentY = lerp(scrollCurrentY, scrollTargetY, 0.12);
+      densityCurrent = lerp(densityCurrent, densityTarget, 0.12);
       phase += fieldEnergy * 0.2;
-      renderer.render(currentX, currentY, fieldEnergy, phase);
+      drawField();
       updateReadout();
 
       if (
         Math.abs(currentX - targetX) > 0.15 ||
         Math.abs(currentY - targetY) > 0.15 ||
         Math.abs(fieldEnergy - desiredEnergy) > 0.002 ||
+        Math.abs(scrollCurrentX - scrollTargetX) > 0.0001 ||
+        Math.abs(scrollCurrentY - scrollTargetY) > 0.0001 ||
+        Math.abs(densityCurrent - densityTarget) > 0.01 ||
         motionEnergy > 0.008
       ) requestFrame();
     }
 
     function handlePointer(event) {
       if (reducedMotion.matches || (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen')) return;
+      if (isPost && postContent && event.target instanceof Node && postContent.contains(event.target)) {
+        clearPointer();
+        return;
+      }
+
       const now = performance.now();
       const nextX = clamp(event.clientX, 0, width);
       const nextY = clamp(event.clientY, 0, height);
@@ -141,10 +183,36 @@
     }
 
     function clearPointer() {
-      if (!pointerActive) return;
+      if (!pointerActive && fieldEnergy < 0.025) return;
       pointerActive = false;
       motionEnergy = 0;
       requestFrame();
+    }
+
+    function handleScroll() {
+      updateScrollTargets(false);
+      requestFrame();
+    }
+
+    function updateScrollTargets(immediate) {
+      const scrollHeight = Math.max(document.documentElement.scrollHeight - height, 1);
+      const progress = reducedMotion.matches ? 0.5 : clamp(window.scrollY / scrollHeight, 0, 1);
+      scrollTargetY = reducedMotion.matches ? 0 : (progress - 0.5) * profile.drift;
+      scrollTargetX = reducedMotion.matches ? 0 : Math.sin(progress * Math.PI * 2) * profile.drift * 0.1;
+
+      if (isHome) {
+        densityTarget = progress < 0.68
+          ? lerp(24, 30, progress / 0.68)
+          : lerp(30, 26, (progress - 0.68) / 0.32);
+      } else {
+        densityTarget = profile.density;
+      }
+
+      if (immediate) {
+        scrollCurrentX = scrollTargetX;
+        scrollCurrentY = scrollTargetY;
+        densityCurrent = densityTarget;
+      }
     }
 
     function requestFrame() {
@@ -158,7 +226,7 @@
 
     function refreshPalette() {
       renderer.refreshPalette();
-      renderer.render(currentX, currentY, fieldEnergy, phase);
+      drawField();
     }
 
     function updateReadout() {
@@ -171,30 +239,35 @@
       let mapY = normalizedY;
       if (displayAspect > atlasAspect) mapY = (mapY - 0.5) * atlasAspect / displayAspect + 0.5;
       else mapX = (mapX - 0.5) * displayAspect / atlasAspect + 0.5;
+      mapX += scrollCurrentX;
+      mapY += scrollCurrentY;
       const labelX = currentX > width - 170 ? currentX - 154 : currentX + 18;
       const labelY = currentY > height - 82 ? currentY - 68 : currentY + 18;
-      const altitude = Math.round(atlasData.sample(mapX, mapY) * 2400);
+      const altitude = Math.round(atlasData.sample(clamp(mapX, 0, 1), clamp(mapY, 0, 1)) * 2400);
 
       readout.style.setProperty('--atlas-readout-x', clamp(labelX, 8, width - 146).toFixed(1) + 'px');
       readout.style.setProperty('--atlas-readout-y', clamp(labelY, 8, height - 62).toFixed(1) + 'px');
       readout.classList.toggle('is-active', !reducedMotion.matches && (pointerActive || fieldEnergy > 0.025));
-      if (readoutX) readoutX.textContent = (mapX * 100).toFixed(2).padStart(6, '0');
-      if (readoutY) readoutY.textContent = (mapY * 100).toFixed(2).padStart(6, '0');
+      if (readoutX) readoutX.textContent = (clamp(mapX, 0, 1) * 100).toFixed(2).padStart(6, '0');
+      if (readoutY) readoutY.textContent = (clamp(mapY, 0, 1) * 100).toFixed(2).padStart(6, '0');
       if (readoutAltitude) readoutAltitude.textContent = String(altitude).padStart(4, '0');
     }
 
     function syncInteraction() {
       window.removeEventListener('pointermove', handlePointer);
+      window.removeEventListener('scroll', handleScroll);
       document.documentElement.removeEventListener('pointerleave', clearPointer);
       pointerActive = false;
       motionEnergy = 0;
       fieldEnergy = 0;
+      updateScrollTargets(true);
       if (!reducedMotion.matches) {
         window.addEventListener('pointermove', handlePointer, { passive: true });
+        window.addEventListener('scroll', handleScroll, { passive: true });
         document.documentElement.addEventListener('pointerleave', clearPointer, { passive: true });
       }
       updateReadout();
-      renderer.render(currentX, currentY, 0, phase);
+      drawField();
     }
   }
 
@@ -266,9 +339,10 @@
     let pixelRatio = 1;
     let imageData = null;
     let baseField = null;
-    let paperColor = [244, 244, 242];
-    let inkColor = [16, 16, 16];
-    let redColor = [201, 47, 36];
+    let terrainLowColor = [38, 54, 58];
+    let terrainHighColor = [228, 232, 227];
+    let terrainLineColor = [82, 105, 111];
+    let surveyColor = [184, 68, 53];
     const hillValues = new Float32Array(atlasData.hills.length * 4);
     let locations = null;
 
@@ -295,12 +369,15 @@
         focus: gl.getUniformLocation(program, 'u_focus'),
         energy: gl.getUniformLocation(program, 'u_energy'),
         phase: gl.getUniformLocation(program, 'u_phase'),
+        scrollOffset: gl.getUniformLocation(program, 'u_scroll_offset'),
+        contourDensity: gl.getUniformLocation(program, 'u_contour_density'),
         minimum: gl.getUniformLocation(program, 'u_minimum'),
         range: gl.getUniformLocation(program, 'u_range'),
         hills: gl.getUniformLocation(program, 'u_hills[0]'),
-        paper: gl.getUniformLocation(program, 'u_paper'),
-        ink: gl.getUniformLocation(program, 'u_ink'),
-        red: gl.getUniformLocation(program, 'u_red')
+        terrainLow: gl.getUniformLocation(program, 'u_terrain_low'),
+        terrainHigh: gl.getUniformLocation(program, 'u_terrain_high'),
+        terrainLine: gl.getUniformLocation(program, 'u_terrain_line'),
+        survey: gl.getUniformLocation(program, 'u_survey')
       };
       gl.uniform1f(locations.minimum, atlasData.minimum);
       gl.uniform1f(locations.range, atlasData.range);
@@ -350,32 +427,33 @@
 
     function refreshPalette() {
       const styles = getComputedStyle(root);
-      const themePaper = parseColor(styles.getPropertyValue('--paper'), [242, 239, 230]);
-      const themeInk = parseColor(styles.getPropertyValue('--ink'), [17, 17, 15]);
-      const darkMode = themePaper[0] + themePaper[1] + themePaper[2] < themeInk[0] + themeInk[1] + themeInk[2];
-      paperColor = darkMode ? [18, 18, 18] : [244, 244, 242];
-      inkColor = darkMode ? [242, 242, 240] : [16, 16, 16];
-      redColor = parseColor(styles.getPropertyValue('--accent'), [201, 47, 36]);
+      terrainLowColor = parseColor(styles.getPropertyValue('--terrain-low'), [38, 54, 58]);
+      terrainHighColor = parseColor(styles.getPropertyValue('--terrain-high'), [228, 232, 227]);
+      terrainLineColor = parseColor(styles.getPropertyValue('--terrain-line'), [82, 105, 111]);
+      surveyColor = parseColor(styles.getPropertyValue('--survey-accent'), [184, 68, 53]);
     }
 
-    function render(focusX, focusY, energy, phase) {
+    function render(focusX, focusY, energy, phase, scrollX, scrollY, contourDensity) {
       if (gl) {
         gl.useProgram(program);
         gl.uniform2f(locations.resolution, displayWidth, displayHeight);
         gl.uniform2f(locations.focus, focusX, focusY);
         gl.uniform1f(locations.energy, energy);
         gl.uniform1f(locations.phase, phase);
-        gl.uniform3fv(locations.paper, normalizeColor(paperColor));
-        gl.uniform3fv(locations.ink, normalizeColor(inkColor));
-        gl.uniform3fv(locations.red, normalizeColor(redColor));
+        gl.uniform2f(locations.scrollOffset, scrollX || 0, scrollY || 0);
+        gl.uniform1f(locations.contourDensity, contourDensity || 24);
+        gl.uniform3fv(locations.terrainLow, normalizeColor(terrainLowColor));
+        gl.uniform3fv(locations.terrainHigh, normalizeColor(terrainHighColor));
+        gl.uniform3fv(locations.terrainLine, normalizeColor(terrainLineColor));
+        gl.uniform3fv(locations.survey, normalizeColor(surveyColor));
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         return;
       }
 
-      renderCanvasFallback(focusX, focusY, energy, phase);
+      renderCanvasFallback(focusX, focusY, energy, phase, scrollX || 0, scrollY || 0, contourDensity || 24);
     }
 
-    function renderCanvasFallback(focusX, focusY, energy, phase) {
+    function renderCanvasFallback(focusX, focusY, energy, phase, scrollX, scrollY, contourDensity) {
       if (!context || !imageData || !baseField) return;
       const data = imageData.data;
       const radius = Math.max(Math.min(displayWidth, displayHeight) * 0.22, 90);
@@ -384,7 +462,9 @@
       for (let row = 0; row < buffer.height; row += 1) {
         const pixelY = row / pixelRatio;
         for (let column = 0; column < buffer.width; column += 1) {
-          const index = row * buffer.width + column;
+          const sourceColumn = Math.round(clamp(column + scrollX * buffer.width, 0, buffer.width - 1));
+          const sourceRow = Math.round(clamp(row + scrollY * buffer.height, 0, buffer.height - 1));
+          const index = sourceRow * buffer.width + sourceColumn;
           const pixelX = column / pixelRatio;
           const dx = pixelX - focusX;
           const dy = pixelY - focusY;
@@ -392,21 +472,26 @@
           const falloff = distance < radius ? Math.pow(1 - distance / radius, 2) : 0;
           const ripple = falloff * Math.sin(distance / radius * Math.PI * 4 - phase) * energy * 0.055;
           const height = clamp(baseField[index] + falloff * energy * 0.18 + ripple, 0, 1);
-          const band = clamp(Math.floor(height * 18) / 17, 0, 1);
+          const toneLevels = Math.max(contourDensity * 0.68, 12);
+          const band = clamp(Math.floor(height * toneLevels) / Math.max(toneLevels - 1, 1), 0, 1);
           const shade = 0.16 + band * 0.72;
-          let color = mixColor(inkColor, paperColor, shade);
-          const contour = Math.abs(height * 26 - Math.round(height * 26)) < 0.045;
-          if (contour) color = mixColor(color, inkColor, 0.82);
+          let color = mixColor(terrainLowColor, terrainHighColor, shade);
+          const contour = Math.abs(height * contourDensity - Math.round(height * contourDensity)) < 0.045;
+          if (contour) color = mixColor(color, terrainLineColor, 0.82);
 
           const reveal = clamp(1 - distance / radius, 0, 1);
-          const longitude = Math.min((column / buffer.width * 24) % 1, 1 - (column / buffer.width * 24) % 1) < 0.012;
-          const latitude = Math.min((row / buffer.height * 16) % 1, 1 - (row / buffer.height * 16) % 1) < 0.012;
+          const longitudeValue = (column / buffer.width + scrollX) * 24;
+          const latitudeValue = (row / buffer.height + scrollY) * 16;
+          const longitudeUnit = longitudeValue - Math.floor(longitudeValue);
+          const latitudeUnit = latitudeValue - Math.floor(latitudeValue);
+          const longitude = Math.min(longitudeUnit, 1 - longitudeUnit) < 0.012;
+          const latitude = Math.min(latitudeUnit, 1 - latitudeUnit) < 0.012;
           const cross = Math.abs(dx) < 1.25 || Math.abs(dy) < 1.25;
           const localGrid = (longitude || latitude ? 0.72 : 0) * reveal * gridFade;
           const grid = Math.max(localGrid, cross ? gridFade : 0);
-          color = mixColor(color, redColor, grid);
+          color = mixColor(color, surveyColor, grid);
 
-          const offset = index * 4;
+          const offset = (row * buffer.width + column) * 4;
           data[offset] = color[0];
           data[offset + 1] = color[1];
           data[offset + 2] = color[2];
@@ -436,9 +521,12 @@
         'uniform float u_minimum;',
         'uniform float u_range;',
         'uniform vec4 u_hills[' + atlasData.hills.length + '];',
-        'uniform vec3 u_paper;',
-        'uniform vec3 u_ink;',
-        'uniform vec3 u_red;',
+        'uniform vec2 u_scroll_offset;',
+        'uniform float u_contour_density;',
+        'uniform vec3 u_terrain_low;',
+        'uniform vec3 u_terrain_high;',
+        'uniform vec3 u_terrain_line;',
+        'uniform vec3 u_survey;',
         'const float PI = 3.141592653589793;',
         'float terrain(vec2 uv) {',
         '  float warpedX = uv.x + sin((uv.y * 5.3 + uv.x * 1.7) * PI) * 0.035 + sin(uv.y * 13.1 * PI) * 0.012;',
@@ -478,15 +566,18 @@
         '  vec2 mapUv = uv;',
         '  if (displayAspect > atlasAspect) mapUv.y = (uv.y - 0.5) * atlasAspect / displayAspect + 0.5;',
         '  else mapUv.x = (uv.x - 0.5) * displayAspect / atlasAspect + 0.5;',
+        '  mapUv += u_scroll_offset;',
         '  vec2 warpedUv = mapUv + direction * wave * falloff * u_energy * 0.026;',
         '  warpedUv += vec2(-direction.y, direction.x) * falloff * u_energy * 0.012;',
-        '  float height = terrain(clamp(warpedUv, 0.0, 1.0));',
+        '  float height = terrain(warpedUv);',
         '  height = clamp(height + falloff * u_energy * 0.16 + wave * falloff * u_energy * 0.05, 0.0, 1.0);',
-        '  float band = clamp(floor(height * 18.0) / 17.0, 0.0, 1.0);',
-        '  vec3 color = mix(u_ink, u_paper, 0.16 + band * 0.72);',
-        '  float contourDistance = abs(height * 26.0 - floor(height * 26.0 + 0.5));',
+        '  float contourDensity = max(u_contour_density, 12.0);',
+        '  float toneLevels = max(contourDensity * 0.68, 12.0);',
+        '  float band = clamp(floor(height * toneLevels) / max(toneLevels - 1.0, 1.0), 0.0, 1.0);',
+        '  vec3 color = mix(u_terrain_low, u_terrain_high, 0.16 + band * 0.72);',
+        '  float contourDistance = abs(height * contourDensity - floor(height * contourDensity + 0.5));',
         '  float contour = 1.0 - smoothstep(0.03, 0.068, contourDistance);',
-        '  color = mix(color, u_ink, contour * 0.82);',
+        '  color = mix(color, u_terrain_line, contour * 0.82);',
         '  float longitude = gridLine(warpedUv.x, 24.0, 24.0 / u_resolution.x * 1.0);',
         '  float latitude = gridLine(warpedUv.y, 16.0, 16.0 / u_resolution.y * 1.0);',
         '  float meridian = 1.0 - smoothstep(0.8, 1.8, abs(delta.x));',
@@ -494,8 +585,8 @@
         '  float gridReveal = smoothstep(0.02, 0.16, u_energy);',
         '  float localGrid = max(longitude, latitude) * 0.72 * falloff * gridReveal;',
         '  float pageCross = max(meridian, parallel) * gridReveal;',
-        '  float redGrid = max(localGrid, pageCross);',
-        '  color = mix(color, u_red, clamp(redGrid, 0.0, 1.0));',
+        '  float surveyGrid = max(localGrid, pageCross);',
+        '  color = mix(color, u_survey, clamp(surveyGrid, 0.0, 1.0));',
         '  gl_FragColor = vec4(color, 0.98);',
         '}'
       ].join('\n');

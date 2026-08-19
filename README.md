@@ -109,9 +109,13 @@ Site information is in `zola.toml`, the about page is `content/about.md`, and th
 
 ```css
 :root {
-  --paper: #f2efe6;
-  --ink: #11110f;
-  --accent: #c92f24;
+  --paper: #eef0ec;
+  --ink: #111718;
+  --accent: #b84435;
+  --terrain-low: #26363a;
+  --terrain-high: #e4e8e3;
+  --terrain-line: #52696f;
+  --survey-accent: #b84435;
 }
 ```
 
