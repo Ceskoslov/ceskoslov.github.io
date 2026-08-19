@@ -70,6 +70,10 @@
 
   function initPageAtlasBackground(canvas, atlasData, reducedMotion) {
     const renderer = createAtlasHeatRenderer(atlasData, canvas);
+    const readout = document.querySelector('[data-atlas-readout]');
+    const readoutX = readout ? readout.querySelector('[data-atlas-x]') : null;
+    const readoutY = readout ? readout.querySelector('[data-atlas-y]') : null;
+    const readoutAltitude = readout ? readout.querySelector('[data-atlas-alt]') : null;
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
     let width = 1;
     let height = 1;
@@ -111,6 +115,7 @@
       fieldEnergy = lerp(fieldEnergy, desiredEnergy, 0.16);
       phase += fieldEnergy * 0.2;
       renderer.render(currentX, currentY, fieldEnergy, phase);
+      updateReadout();
 
       if (
         Math.abs(currentX - targetX) > 0.15 ||
@@ -156,6 +161,28 @@
       renderer.render(currentX, currentY, fieldEnergy, phase);
     }
 
+    function updateReadout() {
+      if (!readout) return;
+      const normalizedX = clamp(currentX / width, 0, 1);
+      const normalizedY = clamp(currentY / height, 0, 1);
+      const displayAspect = width / height;
+      const atlasAspect = 1.6;
+      let mapX = normalizedX;
+      let mapY = normalizedY;
+      if (displayAspect > atlasAspect) mapY = (mapY - 0.5) * atlasAspect / displayAspect + 0.5;
+      else mapX = (mapX - 0.5) * displayAspect / atlasAspect + 0.5;
+      const labelX = currentX > width - 170 ? currentX - 154 : currentX + 18;
+      const labelY = currentY > height - 82 ? currentY - 68 : currentY + 18;
+      const altitude = Math.round(atlasData.sample(mapX, mapY) * 2400);
+
+      readout.style.setProperty('--atlas-readout-x', clamp(labelX, 8, width - 146).toFixed(1) + 'px');
+      readout.style.setProperty('--atlas-readout-y', clamp(labelY, 8, height - 62).toFixed(1) + 'px');
+      readout.classList.toggle('is-active', !reducedMotion.matches && (pointerActive || fieldEnergy > 0.025));
+      if (readoutX) readoutX.textContent = (mapX * 100).toFixed(2).padStart(6, '0');
+      if (readoutY) readoutY.textContent = (mapY * 100).toFixed(2).padStart(6, '0');
+      if (readoutAltitude) readoutAltitude.textContent = String(altitude).padStart(4, '0');
+    }
+
     function syncInteraction() {
       window.removeEventListener('pointermove', handlePointer);
       document.documentElement.removeEventListener('pointerleave', clearPointer);
@@ -166,6 +193,7 @@
         window.addEventListener('pointermove', handlePointer, { passive: true });
         document.documentElement.addEventListener('pointerleave', clearPointer, { passive: true });
       }
+      updateReadout();
       renderer.render(currentX, currentY, 0, phase);
     }
   }
@@ -241,7 +269,7 @@
     let paperColor = [244, 244, 242];
     let inkColor = [16, 16, 16];
     let redColor = [201, 47, 36];
-    const hillValues = new Float32Array(44);
+    const hillValues = new Float32Array(atlasData.hills.length * 4);
     let locations = null;
 
     atlasData.hills.forEach(function (hill, index) {
@@ -350,7 +378,7 @@
     function renderCanvasFallback(focusX, focusY, energy, phase) {
       if (!context || !imageData || !baseField) return;
       const data = imageData.data;
-      const radius = Math.max(Math.min(displayWidth, displayHeight) * 0.34, 120);
+      const radius = Math.max(Math.min(displayWidth, displayHeight) * 0.22, 90);
       const gridFade = clamp(energy * 5, 0, 1);
 
       for (let row = 0; row < buffer.height; row += 1) {
@@ -364,15 +392,15 @@
           const falloff = distance < radius ? Math.pow(1 - distance / radius, 2) : 0;
           const ripple = falloff * Math.sin(distance / radius * Math.PI * 4 - phase) * energy * 0.055;
           const height = clamp(baseField[index] + falloff * energy * 0.18 + ripple, 0, 1);
-          const band = clamp(Math.floor(height * 12) / 11, 0, 1);
+          const band = clamp(Math.floor(height * 18) / 17, 0, 1);
           const shade = 0.16 + band * 0.72;
           let color = mixColor(inkColor, paperColor, shade);
-          const contour = Math.abs(height * 16 - Math.round(height * 16)) < 0.04;
+          const contour = Math.abs(height * 26 - Math.round(height * 26)) < 0.045;
           if (contour) color = mixColor(color, inkColor, 0.82);
 
           const reveal = clamp(1 - distance / radius, 0, 1);
-          const longitude = Math.min((column / buffer.width * 14) % 1, 1 - (column / buffer.width * 14) % 1) < 0.009;
-          const latitude = Math.min((row / buffer.height * 9) % 1, 1 - (row / buffer.height * 9) % 1) < 0.009;
+          const longitude = Math.min((column / buffer.width * 24) % 1, 1 - (column / buffer.width * 24) % 1) < 0.012;
+          const latitude = Math.min((row / buffer.height * 16) % 1, 1 - (row / buffer.height * 16) % 1) < 0.012;
           const cross = Math.abs(dx) < 1.25 || Math.abs(dy) < 1.25;
           const localGrid = (longitude || latitude ? 0.72 : 0) * reveal * gridFade;
           const grid = Math.max(localGrid, cross ? gridFade : 0);
@@ -407,7 +435,7 @@
         'uniform float u_phase;',
         'uniform float u_minimum;',
         'uniform float u_range;',
-        'uniform vec4 u_hills[11];',
+        'uniform vec4 u_hills[' + atlasData.hills.length + '];',
         'uniform vec3 u_paper;',
         'uniform vec3 u_ink;',
         'uniform vec3 u_red;',
@@ -416,7 +444,7 @@
         '  float warpedX = uv.x + sin((uv.y * 5.3 + uv.x * 1.7) * PI) * 0.035 + sin(uv.y * 13.1 * PI) * 0.012;',
         '  float warpedY = uv.y + sin((uv.x * 4.7 - uv.y * 1.3) * PI) * 0.04 + cos(uv.x * 11.7 * PI) * 0.014;',
         '  float value = sin((warpedX * 2.7 + warpedY * 0.9) * PI) * 0.09;',
-        '  for (int i = 0; i < 11; i++) {',
+        '  for (int i = 0; i < ' + atlasData.hills.length + '; i++) {',
         '    vec4 hill = u_hills[i];',
         '    vec2 delta = vec2(warpedX, warpedY) - hill.xy;',
         '    value += hill.w * exp(-dot(delta, delta) / (2.0 * hill.z * hill.z));',
@@ -441,7 +469,7 @@
         '  vec2 pixel = uv * u_resolution;',
         '  vec2 delta = pixel - u_focus;',
         '  float distanceToFocus = length(delta);',
-        '  float radius = max(min(u_resolution.x, u_resolution.y) * 0.34, 120.0);',
+        '  float radius = max(min(u_resolution.x, u_resolution.y) * 0.22, 90.0);',
         '  float falloff = 1.0 - smoothstep(radius * 0.12, radius, distanceToFocus);',
         '  vec2 direction = delta / max(distanceToFocus, 1.0);',
         '  float wave = sin(distanceToFocus / radius * PI * 4.0 - u_phase);',
@@ -454,13 +482,13 @@
         '  warpedUv += vec2(-direction.y, direction.x) * falloff * u_energy * 0.012;',
         '  float height = terrain(clamp(warpedUv, 0.0, 1.0));',
         '  height = clamp(height + falloff * u_energy * 0.16 + wave * falloff * u_energy * 0.05, 0.0, 1.0);',
-        '  float band = clamp(floor(height * 12.0) / 11.0, 0.0, 1.0);',
+        '  float band = clamp(floor(height * 18.0) / 17.0, 0.0, 1.0);',
         '  vec3 color = mix(u_ink, u_paper, 0.16 + band * 0.72);',
-        '  float contourDistance = abs(height * 16.0 - floor(height * 16.0 + 0.5));',
-        '  float contour = 1.0 - smoothstep(0.026, 0.06, contourDistance);',
+        '  float contourDistance = abs(height * 26.0 - floor(height * 26.0 + 0.5));',
+        '  float contour = 1.0 - smoothstep(0.03, 0.068, contourDistance);',
         '  color = mix(color, u_ink, contour * 0.82);',
-        '  float longitude = gridLine(warpedUv.x, 14.0, 14.0 / u_resolution.x * 1.1);',
-        '  float latitude = gridLine(warpedUv.y, 9.0, 9.0 / u_resolution.y * 1.1);',
+        '  float longitude = gridLine(warpedUv.x, 24.0, 24.0 / u_resolution.x * 1.0);',
+        '  float latitude = gridLine(warpedUv.y, 16.0, 16.0 / u_resolution.y * 1.0);',
         '  float meridian = 1.0 - smoothstep(0.8, 1.8, abs(delta.x));',
         '  float parallel = 1.0 - smoothstep(0.8, 1.8, abs(delta.y));',
         '  float gridReveal = smoothstep(0.02, 0.16, u_energy);',
@@ -554,19 +582,23 @@
 
   function makeContourAtlas(seed) {
     const random = mulberry32(seed ^ 0x9e3779b9);
-    const columns = 96;
-    const rows = 64;
+    const columns = 128;
+    const rows = 84;
+    const hillCount = 18;
     const hills = [];
     const values = [];
     let minimum = Infinity;
     let maximum = -Infinity;
 
-    for (let index = 0; index < 11; index += 1) {
+    for (let index = 0; index < hillCount; index += 1) {
+      const column = index % 6;
+      const row = Math.floor(index / 6);
+      const isBasin = index % 4 === 3 || (index > 13 && random() > 0.55);
       hills.push({
-        x: random(),
-        y: random(),
-        radius: 0.08 + random() * 0.22,
-        strength: (index > 7 && random() > 0.5 ? -0.45 : 0.4) + random() * 0.85
+        x: (column + 0.16 + random() * 0.68) / 6,
+        y: (row + 0.14 + random() * 0.72) / 3,
+        radius: 0.035 + random() * 0.09,
+        strength: isBasin ? -(0.25 + random() * 0.42) : 0.34 + random() * 0.62
       });
     }
 
