@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f2efe6">
+    <meta name="theme-color" content="#eef0ec">
     <meta name="color-scheme" content="light dark">
 
     {% if page %}
@@ -40,7 +40,12 @@
       <span class="chaos-field__circle"></span>
     </div>
 
-    {% block page_background %}{% endblock page_background %}
+    <canvas class="page-atlas-background" data-atlas-background aria-hidden="true"></canvas>
+    <div class="page-atlas-readout" data-atlas-readout aria-hidden="true">
+      <span>X <b data-atlas-x>050.00</b></span>
+      <span>Y <b data-atlas-y>050.00</b></span>
+      <span>ALT <b data-atlas-alt>0000</b>M</span>
+    </div>
 
     {% set nav_path = current_path | default(value="") %}
     <header class="site-header">
