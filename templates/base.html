@@ -26,7 +26,7 @@
     <meta property="og:site_name" content="{{ config.title }}">
     <meta name="twitter:card" content="summary">
 
-    <link rel="icon" href="{{ get_url(path='assets/images/favicon.svg') | safe }}" type="image/svg+xml">
+    <link rel="icon" href="{{ get_url(path='assets/images/favicon.svg', cachebust=true) | safe }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ get_url(path='assets/css/style.css', cachebust=true) | safe }}">
     <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') | safe }}">
     <script defer src="{{ get_url(path='assets/js/main.js', cachebust=true) | safe }}"></script>
@@ -50,8 +50,18 @@
     {% set nav_path = current_path | default(value="") %}
     <header class="site-header">
       <a class="site-logo" href="{{ config.base_url | safe }}" aria-label="{{ config.title }} home">
-        <span class="site-logo__mark" aria-hidden="true">C/</span>
-        <span>{{ config.title | upper }}</span>
+        <svg class="site-logo__mark" viewBox="0 0 48 48" aria-hidden="true">
+          <path class="site-logo__frame" d="M2 11V2h9M37 2h9v9M46 37v9h-9M11 46H2v-9"></path>
+          <path class="site-logo__survey" d="M31 5v38M5 17h38"></path>
+          <path class="site-logo__contour site-logo__contour--outer" d="M8.5 29.5C7.2 20.4 13.1 10.2 22.7 8.5c9.1-1.6 18 4.3 17.5 13.6-.4 9.2-6.1 18.4-15.9 18-9.3-.3-14.6-4-15.8-10.6Z"></path>
+          <path class="site-logo__contour site-logo__contour--middle" d="M14.6 27.6c-.8-6.2 3.1-12.4 9.5-13.6 6-1.1 11 3.2 10.7 9.1-.3 6.1-4.3 11.3-10.6 10.9-5.6-.3-9.1-2.4-9.6-6.4Z"></path>
+          <path class="site-logo__contour site-logo__contour--inner" d="M20.1 25.8c-.3-3.4 1.7-6.3 5.1-6.6 3.6-.3 5.7 2.4 5.2 5.7-.4 3.2-2.8 5-6 4.5-2.7-.4-4.1-1.7-4.3-3.6Z"></path>
+          <circle class="site-logo__point" cx="31" cy="17" r="2.2"></circle>
+        </svg>
+        <span class="site-logo__wordmark">
+          <b>{{ config.title | upper }}</b>
+          <small>Mille plateaux</small>
+        </span>
       </a>
 
       <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation">

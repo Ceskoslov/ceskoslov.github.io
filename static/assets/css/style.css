@@ -226,29 +226,115 @@ svg {
 .site-logo {
   display: inline-flex;
   align-items: center;
-  gap: 0.72rem;
+  gap: 0.78rem;
+  color: var(--ink);
   font-family: var(--mono);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
   text-decoration: none;
 }
 
-.site-logo__mark {
-  display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
-  place-items: center;
-  color: var(--paper);
-  background: var(--ink);
-  font-size: 0.75rem;
-  letter-spacing: -0.08em;
-  transform: rotate(-3deg);
-  transition: transform 180ms ease;
+.site-logo:focus-visible {
+  outline: 1px solid var(--survey-accent);
+  outline-offset: 0.35rem;
 }
 
-.site-logo:hover .site-logo__mark {
-  transform: rotate(4deg);
+.site-logo__mark {
+  display: block;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.site-logo__frame {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-width: 1.2;
+}
+
+.site-logo__survey {
+  fill: none;
+  stroke: var(--survey-accent);
+  stroke-width: 0.9;
+  transition: opacity 180ms ease, stroke-width 220ms ease;
+  vector-effect: non-scaling-stroke;
+}
+
+.site-logo__contour {
+  fill: none;
+  stroke: var(--terrain-line);
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), stroke 180ms ease;
+}
+
+.site-logo__contour--outer {
+  stroke: currentColor;
+  stroke-width: 2.6;
+}
+
+.site-logo__contour--middle {
+  stroke-width: 1.8;
+}
+
+.site-logo__contour--inner {
+  stroke-width: 1.3;
+}
+
+.site-logo__point {
+  fill: var(--survey-accent);
+  stroke: var(--paper);
+  stroke-width: 1.1;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.site-logo__wordmark {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.site-logo__wordmark b {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+}
+
+.site-logo__wordmark small {
+  color: var(--muted);
+  font-size: 0.48rem;
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: color 180ms ease;
+}
+
+.site-logo:hover .site-logo__survey {
+  opacity: 0.72;
+  stroke-width: 1.4;
+}
+
+.site-logo:hover .site-logo__contour--outer {
+  transform: scale(1.035) rotate(1.5deg);
+}
+
+.site-logo:hover .site-logo__contour--middle {
+  transform: scale(0.96) rotate(-2.5deg);
+}
+
+.site-logo:hover .site-logo__contour--inner {
+  transform: translateX(0.7px) scale(1.08);
+}
+
+.site-logo:hover .site-logo__point {
+  transform: scale(1.27);
+}
+
+.site-logo:hover .site-logo__wordmark small {
+  color: var(--survey-accent);
 }
 
 .site-nav {
@@ -1646,6 +1732,11 @@ svg {
   .manifesto__scan {
     display: none;
     animation: none !important;
+  }
+
+  .site-logo:hover .site-logo__contour,
+  .site-logo:hover .site-logo__point {
+    transform: none;
   }
 
 }
