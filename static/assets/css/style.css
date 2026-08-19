@@ -372,7 +372,7 @@ svg {
 /* Atlas typography */
 .atlas-reveal__line {
   display: block;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .atlas-reveal__inner {
@@ -381,8 +381,8 @@ svg {
 
 .has-atlas-motion .atlas-reveal__inner {
   opacity: 0;
-  clip-path: inset(0 100% 0 0);
-  transform: translate3d(-0.16em, 0.35em, 0) skewX(-4deg);
+  clip-path: inset(-0.18em 100% -0.24em 0);
+  transform: translate3d(-0.16em, 0.12em, 0) skewX(-4deg);
   transition: clip-path 760ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 220ms ease,
     transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -394,7 +394,7 @@ svg {
 
 .has-atlas-motion .atlas-reveal.is-revealed .atlas-reveal__inner {
   opacity: 1;
-  clip-path: inset(0);
+  clip-path: inset(-0.18em 0 -0.24em 0);
   transform: translate3d(0, 0, 0) skewX(0);
 }
 
@@ -447,7 +447,7 @@ svg {
   font-size: clamp(4.2rem, 9.4vw, 8.75rem);
   font-weight: 400;
   letter-spacing: -0.07em;
-  line-height: 0.82;
+  line-height: 0.92;
 }
 
 .hero h1 > span {
@@ -756,93 +756,38 @@ svg {
   margin-top: 1.25rem;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--ink) 58%, transparent);
-  background: color-mix(in srgb, var(--paper) 8%, transparent);
+  background-color: color-mix(in srgb, var(--paper) 8%, transparent);
+  background-image: repeating-radial-gradient(
+    ellipse at 46% 52%,
+    transparent 0 1.2rem,
+    color-mix(in srgb, var(--ink) 10%, transparent) 1.24rem 1.28rem
+  );
   cursor: crosshair;
   contain: layout paint;
 }
 
 .atlas-sandbox__grid,
-.atlas-sandbox__map,
-.atlas-sandbox__shards {
+.atlas-sandbox__heat {
   position: absolute;
   inset: 0;
 }
 
 .atlas-sandbox__grid {
+  z-index: 1;
+  pointer-events: none;
   background-image:
     linear-gradient(color-mix(in srgb, var(--ink) 17%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--ink) 17%, transparent) 1px, transparent 1px);
   background-size: 8.333% 16.666%;
 }
 
-.atlas-sandbox__map {
-  inset: 5% 4%;
-  background: color-mix(in srgb, var(--ink) 45%, transparent);
-  opacity: 0.42;
-  -webkit-mask-image: var(--atlas-texture, repeating-radial-gradient(ellipse at 48% 52%, #000 0 1px, transparent 2px 1.2rem));
-  mask-image: var(--atlas-texture, repeating-radial-gradient(ellipse at 48% 52%, #000 0 1px, transparent 2px 1.2rem));
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-}
-
-.atlas-sandbox__shard {
-  position: absolute;
-  top: var(--shard-y);
-  left: var(--shard-x);
-  width: var(--shard-width);
-  height: var(--shard-height);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--paper) 88%, transparent);
-  clip-path: var(--shard-shape);
-  opacity: 0.82;
-  transform: translateY(var(--shard-entry-y, 0)) rotate(var(--shard-rotation)) scale(var(--shard-scale, 1));
+.atlas-sandbox__heat {
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0.94;
   transform-origin: center;
-  transition: opacity 300ms ease, filter 300ms ease,
-    transform 480ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-.atlas-sandbox__shard::after {
-  position: absolute;
-  right: 0.8rem;
-  bottom: 0.65rem;
-  content: attr(data-sheet);
-  color: var(--accent);
-  font: 0.55rem/1 var(--mono);
-  letter-spacing: 0.08em;
-}
-
-.atlas-sandbox__shard-texture {
-  position: absolute;
-  top: var(--shard-map-top);
-  left: var(--shard-map-left);
-  width: var(--board-width);
-  height: var(--board-height);
-  background: color-mix(in srgb, var(--ink) 74%, transparent);
-  -webkit-mask-image: var(--atlas-texture);
-  mask-image: var(--atlas-texture);
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-}
-
-.atlas-sandbox__board.has-focus .atlas-sandbox__shard:not(.is-focused) {
-  opacity: 0.36;
-  filter: saturate(0.45);
-}
-
-.atlas-sandbox__shard.is-focused {
-  z-index: 2;
-  opacity: 1;
-  filter: contrast(1.08);
-  --shard-scale: 1.055;
 }
 
 .atlas-probe {
@@ -888,25 +833,6 @@ svg {
   background: var(--accent);
 }
 
-.atlas-measure {
-  position: absolute;
-  z-index: 4;
-  top: var(--measure-y, 50%);
-  left: var(--measure-x, 50%);
-  width: var(--measure-length, 0);
-  height: 1px;
-  background: color-mix(in srgb, var(--ink) 72%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  transform: rotate(var(--measure-angle, 0deg));
-  transform-origin: left;
-  transition: opacity 160ms ease;
-}
-
-.atlas-sandbox__board.has-focus .atlas-measure {
-  opacity: 1;
-}
-
 .atlas-readout {
   position: absolute;
   z-index: 6;
@@ -944,7 +870,7 @@ svg {
 
 .has-atlas-motion .atlas-sandbox__legend,
 .has-atlas-motion .atlas-sandbox__grid,
-.has-atlas-motion .atlas-sandbox__map,
+.has-atlas-motion .atlas-sandbox__heat,
 .has-atlas-motion .atlas-probe,
 .has-atlas-motion .atlas-readout {
   opacity: 0;
@@ -955,35 +881,17 @@ svg {
   transform: translateY(-0.8rem);
 }
 
-.has-atlas-motion .atlas-sandbox__map {
+.has-atlas-motion .atlas-sandbox__heat {
   transform: scale(1.06);
-}
-
-.has-atlas-motion .atlas-sandbox__shard {
-  --shard-entry-y: 3rem;
-  opacity: 0;
 }
 
 .has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__legend,
 .has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__grid,
-.has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__map,
+.has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__heat,
 .has-atlas-motion .atlas-sandbox.is-active .atlas-probe,
 .has-atlas-motion .atlas-sandbox.is-active .atlas-readout {
   opacity: 1;
   transform: translateY(0) scale(1);
-}
-
-.has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__shard {
-  --shard-entry-y: 0;
-  opacity: 0.82;
-}
-
-.has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__board.has-focus .atlas-sandbox__shard:not(.is-focused) {
-  opacity: 0.36;
-}
-
-.has-atlas-motion .atlas-sandbox.is-active .atlas-sandbox__shard.is-focused {
-  opacity: 1;
 }
 
 .manifesto {
@@ -1649,7 +1557,7 @@ svg {
 
   .hero h1 {
     font-size: clamp(3.7rem, 19vw, 7rem);
-    line-height: 0.86;
+    line-height: 0.94;
   }
 
   .hero h1 > span:nth-child(2),
@@ -1707,10 +1615,6 @@ svg {
   .atlas-sandbox__board {
     min-height: 28rem;
     cursor: default;
-  }
-
-  .atlas-sandbox__shard:nth-child(n + 6) {
-    display: none;
   }
 
   .atlas-readout {
@@ -1824,7 +1728,7 @@ svg {
     transform: none !important;
   }
 
-  .atlas-sandbox__shard,
+  .atlas-sandbox__heat,
   .atlas-probe {
     will-change: auto;
   }

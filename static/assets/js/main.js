@@ -361,80 +361,56 @@
 
   function initAtlasSandbox(section, atlasData, reducedMotion) {
     const board = section.querySelector('[data-atlas-board]');
-    const shardLayer = section.querySelector('[data-atlas-shards]');
+    const canvas = section.querySelector('[data-atlas-heat]');
     const probe = section.querySelector('[data-atlas-probe]');
-    const measureLine = section.querySelector('[data-atlas-measure]');
     const fieldLabel = section.querySelector('[data-atlas-field]');
     const readoutX = section.querySelector('[data-atlas-x]');
     const readoutY = section.querySelector('[data-atlas-y]');
     const readoutAlt = section.querySelector('[data-atlas-alt]');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine) and (min-width: 801px)');
-    const random = mulberry32(atlasData.seed ^ 0xa5a5a5a5);
-    const textureUrl = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent(atlasData.svg) + '")';
-    const shapes = [
-      'polygon(4% 7%, 91% 0, 100% 76%, 74% 100%, 0 88%)',
-      'polygon(0 16%, 86% 0, 100% 31%, 90% 94%, 14% 100%)',
-      'polygon(10% 0, 100% 10%, 93% 82%, 55% 100%, 0 79%, 5% 20%)',
-      'polygon(0 4%, 80% 0, 100% 64%, 81% 100%, 8% 91%)'
-    ];
-    const slots = shuffled([
-      [0.03, 0.08], [0.34, 0.04], [0.7, 0.1], [0.11, 0.39],
-      [0.46, 0.35], [0.74, 0.48], [0.24, 0.7], [0.61, 0.72]
-    ], random);
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
     const waypoints = [[0.14, 0.3], [0.7, 0.24], [0.42, 0.62], [0.78, 0.72], [0.52, 0.48]];
-    const shards = [];
+    const buffer = document.createElement('canvas');
+    const context = canvas ? canvas.getContext('2d') : null;
+    const bufferContext = buffer.getContext('2d', { willReadFrequently: true });
     let boardWidth = 1;
     let boardHeight = 1;
-    let visibleCount = 8;
+    let fieldWidth = 1;
+    let fieldHeight = 1;
+    let baseField = new Float32Array(1);
+    let imageData = null;
     let visible = false;
     let pointerActive = false;
     let targetX = 0;
     let targetY = 0;
     let currentX = 0;
     let currentY = 0;
-    let activeIndex = -1;
+    let motionEnergy = 0;
+    let heatEnergy = 0;
+    let phase = 0;
+    let lastPointerTime = 0;
     let introStart = 0;
     let mobileStart = 0;
     let frameId = 0;
-    let visibilityObserver = null;
+    let lowColor = [180, 70, 38];
+    let highColor = [244, 220, 195];
+    let lineColor = [23, 23, 20];
 
-    if (!board || !shardLayer || !probe || !measureLine) return;
-
-    section.style.setProperty('--atlas-texture', textureUrl);
+    if (!board || !canvas || !probe || !context || !bufferContext) return;
     if (fieldLabel) fieldLabel.textContent = String(atlasData.seed >>> 0).padStart(10, '0').slice(-10);
-
-    slots.forEach(function (slot, index) {
-      const element = document.createElement('span');
-      const texture = document.createElement('span');
-      element.className = 'atlas-sandbox__shard';
-      element.dataset.sheet = 'F-' + String(index + 1).padStart(2, '0');
-      texture.className = 'atlas-sandbox__shard-texture';
-      element.appendChild(texture);
-      shardLayer.appendChild(element);
-      shards.push({
-        element: element,
-        slot: slot,
-        widthRatio: 0.18 + random() * 0.1,
-        aspect: 0.55 + random() * 0.32,
-        rotation: -10 + random() * 20,
-        x: 0,
-        y: 0,
-        width: 0,
-        height: 0,
-        centerX: 0,
-        centerY: 0
-      });
-      element.style.setProperty('--shard-shape', shapes[Math.floor(random() * shapes.length)]);
-    });
 
     measureBoard();
     syncSandboxMotion();
     window.addEventListener('resize', handleSandboxResize, { passive: true });
     addMediaListener(reducedMotion, syncSandboxMotion);
     addMediaListener(finePointer, syncSandboxInputs);
+    addMediaListener(systemTheme, refreshPalette);
+    if ('MutationObserver' in window) {
+      new MutationObserver(refreshPalette).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    }
 
     if ('IntersectionObserver' in window) {
-      visibilityObserver = new IntersectionObserver(function (entries) {
+      const visibilityObserver = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
           setSandboxVisible(entry.isIntersecting && entry.intersectionRatio >= 0.18);
         });
@@ -446,34 +422,88 @@
 
     function measureBoard() {
       const rect = board.getBoundingClientRect();
-      const mobile = window.innerWidth <= 800;
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
       boardWidth = Math.max(rect.width, 1);
       boardHeight = Math.max(rect.height, 1);
-      visibleCount = mobile ? 5 : shards.length;
+      canvas.width = Math.max(Math.round(boardWidth * ratio), 1);
+      canvas.height = Math.max(Math.round(boardHeight * ratio), 1);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      shards.forEach(function (shard) {
-        shard.width = clamp(boardWidth * shard.widthRatio * (mobile ? 1.12 : 1), mobile ? 116 : 170, mobile ? 210 : 330);
-        shard.height = shard.width * shard.aspect;
-        shard.x = shard.slot[0] * Math.max(boardWidth - shard.width, 0);
-        shard.y = shard.slot[1] * Math.max(boardHeight - shard.height, 0);
-        shard.centerX = shard.x + shard.width / 2;
-        shard.centerY = shard.y + shard.height / 2;
-        shard.element.style.setProperty('--shard-x', shard.x.toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-y', shard.y.toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-width', shard.width.toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-height', shard.height.toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-rotation', shard.rotation.toFixed(2) + 'deg');
-        shard.element.style.setProperty('--board-width', boardWidth.toFixed(1) + 'px');
-        shard.element.style.setProperty('--board-height', boardHeight.toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-map-left', (-shard.x).toFixed(1) + 'px');
-        shard.element.style.setProperty('--shard-map-top', (-shard.y).toFixed(1) + 'px');
-      });
+      fieldWidth = Math.round(clamp(boardWidth / 5, 160, 260));
+      fieldHeight = Math.round(clamp(fieldWidth * boardHeight / boardWidth, 96, 180));
+      buffer.width = fieldWidth;
+      buffer.height = fieldHeight;
+      imageData = bufferContext.createImageData(fieldWidth, fieldHeight);
+      baseField = new Float32Array(fieldWidth * fieldHeight);
+
+      for (let row = 0; row < fieldHeight; row += 1) {
+        for (let column = 0; column < fieldWidth; column += 1) {
+          baseField[row * fieldWidth + column] = atlasData.sample(
+            column / Math.max(fieldWidth - 1, 1),
+            row / Math.max(fieldHeight - 1, 1)
+          );
+        }
+      }
 
       currentX = clamp(currentX || boardWidth * 0.08, 0, boardWidth);
       currentY = clamp(currentY || boardHeight * 0.42, 0, boardHeight);
       targetX = clamp(targetX || currentX, 0, boardWidth);
       targetY = clamp(targetY || currentY, 0, boardHeight);
+      refreshPalette();
       updateProbe();
+    }
+
+    function refreshPalette() {
+      const styles = getComputedStyle(root);
+      const accent = parseColor(styles.getPropertyValue('--accent'), [227, 91, 54]);
+      const paper = parseColor(styles.getPropertyValue('--paper'), [242, 240, 233]);
+      const ink = parseColor(styles.getPropertyValue('--ink'), [23, 23, 20]);
+      lowColor = mixColor(accent, ink, 0.24);
+      highColor = mixColor(accent, paper, 0.76);
+      lineColor = mixColor(ink, paper, 0.05);
+      renderHeatField();
+    }
+
+    function renderHeatField() {
+      if (!imageData) return;
+      const data = imageData.data;
+      const radius = Math.max(Math.min(boardWidth, boardHeight) * 0.34, 120);
+      const bands = 9;
+
+      for (let row = 0; row < fieldHeight; row += 1) {
+        const pixelY = row / Math.max(fieldHeight - 1, 1) * boardHeight;
+        for (let column = 0; column < fieldWidth; column += 1) {
+          const index = row * fieldWidth + column;
+          const pixelX = column / Math.max(fieldWidth - 1, 1) * boardWidth;
+          const dx = pixelX - currentX;
+          const dy = pixelY - currentY;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const falloff = distance < radius ? Math.pow(1 - distance / radius, 2) : 0;
+          const ripple = falloff * Math.sin(distance / radius * Math.PI * 4 - phase) * heatEnergy * 0.045;
+          const height = clamp(baseField[index] + falloff * heatEnergy * 0.16 + ripple, 0, 1);
+          const band = clamp(Math.floor(height * bands) / (bands - 1), 0, 1);
+          let red = Math.round(lerp(lowColor[0], highColor[0], band));
+          let green = Math.round(lerp(lowColor[1], highColor[1], band));
+          let blue = Math.round(lerp(lowColor[2], highColor[2], band));
+
+          if (Math.abs(height * bands - Math.round(height * bands)) < 0.045) {
+            red = Math.round(lerp(red, lineColor[0], 0.72));
+            green = Math.round(lerp(green, lineColor[1], 0.72));
+            blue = Math.round(lerp(blue, lineColor[2], 0.72));
+          }
+
+          const offset = index * 4;
+          data[offset] = red;
+          data[offset + 1] = green;
+          data[offset + 2] = blue;
+          data[offset + 3] = 244;
+        }
+      }
+
+      bufferContext.putImageData(imageData, 0, 0);
+      context.clearRect(0, 0, boardWidth, boardHeight);
+      context.imageSmoothingEnabled = true;
+      context.drawImage(buffer, 0, 0, boardWidth, boardHeight);
     }
 
     function setSandboxVisible(isVisible) {
@@ -484,23 +514,25 @@
         section.classList.add('is-active');
         targetX = currentX = boardWidth * 0.5;
         targetY = currentY = boardHeight * 0.5;
-        clearFocus();
+        heatEnergy = motionEnergy = 0;
+        renderHeatField();
         updateProbe();
         return;
       }
 
       if (visible === isVisible) return;
-
       visible = isVisible;
       section.classList.toggle('is-active', isVisible);
       pointerActive = false;
-      clearFocus();
 
       if (isVisible) {
         currentX = boardWidth * 0.08;
         currentY = boardHeight * 0.42;
         targetX = currentX;
         targetY = currentY;
+        heatEnergy = 0;
+        motionEnergy = 0;
+        phase = 0;
         introStart = performance.now();
         mobileStart = introStart;
         requestSandboxFrame();
@@ -515,7 +547,6 @@
     function renderSandbox(time) {
       frameId = 0;
       if (!visible || reducedMotion.matches) return;
-
       let guided = false;
       let keepAnimating = false;
 
@@ -526,8 +557,7 @@
         guided = true;
         keepAnimating = progress < 1;
       } else if (!pointerActive && !finePointer.matches && mobileStart) {
-        const duration = 5200;
-        const progress = clamp((time - mobileStart) / duration, 0, 1);
+        const progress = clamp((time - mobileStart) / 5200, 0, 1);
         const scaled = progress * (waypoints.length - 1);
         const segment = Math.min(Math.floor(scaled), waypoints.length - 2);
         const amount = easeInOut(scaled - segment);
@@ -539,45 +569,19 @@
 
       currentX = lerp(currentX, targetX, 0.18);
       currentY = lerp(currentY, targetY, 0.18);
-      keepAnimating = keepAnimating || Math.abs(currentX - targetX) > 0.2 || Math.abs(currentY - targetY) > 0.2;
+      motionEnergy *= 0.86;
+      const desiredEnergy = pointerActive ? Math.max(0.14, motionEnergy) : (guided ? 0.3 : 0);
+      heatEnergy = lerp(heatEnergy, desiredEnergy, 0.14);
+      phase += heatEnergy * 0.18;
+      keepAnimating = keepAnimating ||
+        Math.abs(currentX - targetX) > 0.2 ||
+        Math.abs(currentY - targetY) > 0.2 ||
+        Math.abs(heatEnergy - desiredEnergy) > 0.003 ||
+        motionEnergy > 0.01;
 
-      if (pointerActive || guided) focusNearestShard(currentX, currentY);
-      else clearFocus();
+      renderHeatField();
       updateProbe();
-
       if (keepAnimating) requestSandboxFrame();
-    }
-
-    function focusNearestShard(x, y) {
-      let nearestIndex = -1;
-      let nearestDistance = Infinity;
-      const radius = Math.max(220, boardWidth * 0.28);
-
-      for (let index = 0; index < visibleCount; index += 1) {
-        const shard = shards[index];
-        const dx = shard.centerX - x;
-        const dy = shard.centerY - y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < nearestDistance && distance < radius) {
-          nearestDistance = distance;
-          nearestIndex = index;
-        }
-      }
-
-      setFocusedShard(nearestIndex);
-    }
-
-    function setFocusedShard(index) {
-      if (activeIndex === index) return;
-      activeIndex = index;
-      board.classList.toggle('has-focus', index >= 0);
-      shards.forEach(function (shard, shardIndex) {
-        shard.element.classList.toggle('is-focused', shardIndex === index);
-      });
-    }
-
-    function clearFocus() {
-      setFocusedShard(-1);
     }
 
     function updateProbe() {
@@ -586,29 +590,27 @@
       const altitude = Math.round(atlasData.sample(normalizedX, normalizedY) * 2400);
       probe.style.setProperty('--probe-x', currentX.toFixed(1) + 'px');
       probe.style.setProperty('--probe-y', currentY.toFixed(1) + 'px');
-
       if (readoutX) readoutX.textContent = (normalizedX * 100).toFixed(2).padStart(6, '0');
       if (readoutY) readoutY.textContent = (normalizedY * 100).toFixed(2).padStart(6, '0');
       if (readoutAlt) readoutAlt.textContent = String(altitude).padStart(4, '0');
-
-      if (activeIndex >= 0) {
-        const shard = shards[activeIndex];
-        const dx = shard.centerX - currentX;
-        const dy = shard.centerY - currentY;
-        measureLine.style.setProperty('--measure-x', currentX.toFixed(1) + 'px');
-        measureLine.style.setProperty('--measure-y', currentY.toFixed(1) + 'px');
-        measureLine.style.setProperty('--measure-length', Math.sqrt(dx * dx + dy * dy).toFixed(1) + 'px');
-        measureLine.style.setProperty('--measure-angle', (Math.atan2(dy, dx) * 180 / Math.PI).toFixed(2) + 'deg');
-      }
     }
 
     function handleSandboxPointer(event) {
       if (!visible || reducedMotion.matches || !finePointer.matches) return;
       const rect = board.getBoundingClientRect();
+      const now = performance.now();
+      const nextX = clamp(event.clientX - rect.left, 0, boardWidth);
+      const nextY = clamp(event.clientY - rect.top, 0, boardHeight);
+      const elapsed = Math.max(now - lastPointerTime, 16);
+      const distance = Math.sqrt(Math.pow(nextX - targetX, 2) + Math.pow(nextY - targetY, 2));
+
       pointerActive = true;
       introStart = 0;
-      targetX = clamp(event.clientX - rect.left, 0, boardWidth);
-      targetY = clamp(event.clientY - rect.top, 0, boardHeight);
+      mobileStart = 0;
+      motionEnergy = Math.max(motionEnergy, clamp(distance / elapsed / 1.2, 0.18, 1));
+      targetX = nextX;
+      targetY = nextY;
+      lastPointerTime = now;
       requestSandboxFrame();
     }
 
@@ -616,9 +618,10 @@
       if (reducedMotion.matches) return;
       pointerActive = false;
       introStart = 0;
+      mobileStart = 0;
+      motionEnergy = 0;
       targetX = boardWidth * 0.5;
       targetY = boardHeight * 0.5;
-      clearFocus();
       requestSandboxFrame();
     }
 
@@ -650,6 +653,33 @@
         if (shouldBeVisible && visible && !introStart) visible = false;
         setSandboxVisible(shouldBeVisible);
       }
+    }
+
+    function parseColor(value, fallback) {
+      const normalized = value.trim();
+      const hex = normalized.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+      const rgb = normalized.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
+
+      if (hex) {
+        const code = hex[1].length === 3
+          ? hex[1].split('').map(function (character) { return character + character; }).join('')
+          : hex[1];
+        return [
+          parseInt(code.slice(0, 2), 16),
+          parseInt(code.slice(2, 4), 16),
+          parseInt(code.slice(4, 6), 16)
+        ];
+      }
+      if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+      return fallback;
+    }
+
+    function mixColor(from, to, amount) {
+      return [
+        Math.round(lerp(from[0], to[0], amount)),
+        Math.round(lerp(from[1], to[1], amount)),
+        Math.round(lerp(from[2], to[2], amount))
+      ];
     }
   }
 
