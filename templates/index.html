@@ -5,19 +5,23 @@
 
 {% block content %}
 {% set writing = get_section(path="writing/_index.md") %}
+{% set about = get_page(path="about.md") %}
 <section class="hero" aria-labelledby="hero-title">
-  <div class="hero__index" aria-hidden="true">001—∞</div>
+  <div class="hero__index" aria-hidden="true">PROFILE / 001</div>
   <div class="hero__content">
-    <p class="eyebrow"><span></span> Personal notes / Journal</p>
+    <p class="eyebrow"><span></span> {{ about.extra.kicker | default(value="About / Profile") }}</p>
     <h1 id="hero-title" class="atlas-reveal atlas-reveal--hero" data-atlas-reveal>
-      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">Weltnacht.</span></span>
-      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">絮。<em>μετεμψύχωσις</em></span></span>
+      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">{{ section.title }}</span></span>
     </h1>
-    <p class="hero__intro">{{ config.description }}</p>
+    <div class="hero__profile">
+      {{ about.content | safe }}
+    </div>
   </div>
-  <div class="hero__symbol" aria-hidden="true">
-    <span>ヌー</span><span>ル</span><i></i><span>CHA</span><span>OS</span>
-  </div>
+  <aside class="hero__specimens" aria-label="Language fragments">
+    <span><small>DE / 01</small><b>Weltnacht.</b></span>
+    <span><small>ZH / 02</small><b>絮。</b></span>
+    <span><small>EL / 03</small><b>μετεμψύχωσις</b></span>
+  </aside>
 </section>
 
 <section class="post-feed" aria-labelledby="latest-posts">
@@ -42,9 +46,14 @@
   {% endif %}
 </section>
 
-<section class="manifesto">
+<section class="manifesto atlas-reveal" data-atlas-reveal aria-labelledby="manifesto-title">
   <p aria-hidden="true">*</p>
-  <blockquote>D'où venons-nous?<br>Que sommes-nous?<br>Où allons-nous?</blockquote>
-  <span>— NOTES ON ...</span>
+  <blockquote id="manifesto-title">
+    <span class="manifesto__line">D'où venons-nous?</span>
+    <span class="manifesto__line">Que sommes-nous?</span>
+    <span class="manifesto__line">Où allons-nous?</span>
+  </blockquote>
+  <span class="manifesto__axis">— NOTES ON ...</span>
+  <i class="manifesto__scan" aria-hidden="true"></i>
 </section>
 {% endblock content %}
