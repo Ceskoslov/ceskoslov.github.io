@@ -461,7 +461,7 @@ svg {
   position: relative;
   display: grid;
   min-height: min(48rem, calc(100vh - 7.5rem));
-  grid-template-columns: 3rem minmax(0, 1fr) minmax(13rem, 18rem);
+  grid-template-columns: 3rem minmax(0, 1fr) minmax(17rem, 23rem);
   align-items: center;
   column-gap: clamp(1.5rem, 4vw, 4.5rem);
   padding: clamp(4rem, 7vw, 7rem) 0;
@@ -563,51 +563,158 @@ svg {
 }
 
 .hero__specimens {
-  display: flex;
+  position: relative;
+  display: grid;
   min-width: 0;
   align-self: stretch;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(2.2rem, 5vh, 4rem);
+  align-content: center;
+  gap: 1.2rem;
   padding-left: clamp(1.3rem, 3vw, 2.6rem);
   border-left: 1px solid var(--line);
 }
 
-.hero__specimens > span {
+.hero__specimen-frame {
   position: relative;
-  display: grid;
-  gap: 0.55rem;
-  padding-left: 1rem;
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--terrain-line) 72%, var(--line));
+  background: var(--terrain-low);
+  box-shadow: 0.75rem 0.75rem 0 color-mix(in srgb, var(--paper-deep) 68%, transparent);
+  isolation: isolate;
 }
 
-.hero__specimens > span::before {
+.hero__specimen-frame::before,
+.hero__specimen-frame::after {
   position: absolute;
-  top: 0.2rem;
-  bottom: 0.2rem;
+  z-index: 2;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+}
+
+.hero__specimen-frame::before {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    color-mix(in srgb, var(--terrain-high) 9%, transparent) 4px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.52;
+}
+
+.hero__specimen-frame::after {
+  background:
+    radial-gradient(circle at 50% 48%, transparent 35%, color-mix(in srgb, var(--terrain-low) 55%, transparent) 100%),
+    linear-gradient(135deg, color-mix(in srgb, var(--terrain-high) 8%, transparent), transparent 42%);
+}
+
+.hero__specimen-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  filter: contrast(1.08) saturate(0.82);
+}
+
+.hero__specimen-cross {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  width: 2.8rem;
+  height: 2.8rem;
+  border: 1px solid color-mix(in srgb, var(--survey-accent) 66%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.hero__specimen-cross::before,
+.hero__specimen-cross::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  content: "";
+  background: var(--survey-accent);
+  transform: translate(-50%, -50%);
+}
+
+.hero__specimen-cross::before {
+  width: 4.4rem;
+  height: 1px;
+}
+
+.hero__specimen-cross::after {
+  width: 1px;
+  height: 4.4rem;
+}
+
+.hero__specimen-index,
+.hero__specimen-scale {
+  position: absolute;
+  z-index: 3;
+  color: color-mix(in srgb, var(--terrain-high) 84%, transparent);
+  font: 0.5rem/1.2 var(--mono);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  text-shadow: 0 1px 0 var(--terrain-low);
+}
+
+.hero__specimen-index {
+  top: 0.8rem;
+  left: 0.8rem;
+}
+
+.hero__specimen-scale {
+  right: 0.8rem;
+  bottom: 0.8rem;
+}
+
+.hero__specimen-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.hero__specimen-meta > span {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 0.4rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.hero__specimen-meta > span::before {
+  position: absolute;
+  top: -1px;
   left: 0;
-  width: 2px;
+  width: 38%;
+  height: 1px;
   content: "";
   background: var(--accent);
-  transform: scaleY(0.28);
-  transform-origin: top;
+  transform: scaleX(0.32);
+  transform-origin: left;
   transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.hero__specimens > span:hover::before {
-  transform: scaleY(1);
+.hero__specimen-meta > span:hover::before {
+  transform: scaleX(1);
 }
 
-.hero__specimens small {
+.hero__specimen-meta small {
   color: var(--survey-accent);
   font: 0.54rem/1 var(--mono);
   letter-spacing: 0.12em;
 }
 
-.hero__specimens b {
+.hero__specimen-meta b {
   min-width: 0;
   color: var(--terrain-line);
   font-family: var(--serif);
-  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-size: clamp(0.78rem, 1.1vw, 0.98rem);
   font-weight: 400;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -1572,14 +1679,20 @@ svg {
 
   .hero__specimens {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-    gap: 1.8rem 1rem;
+    width: min(100%, 28rem);
+    grid-template-columns: 1fr;
+    gap: 1.2rem;
+    justify-self: center;
     padding: 2rem 0 0;
     border-top: 1px solid var(--line);
     border-left: 0;
   }
 
-  .hero__specimens b {
+  .hero__specimen-frame {
+    box-shadow: 0.55rem 0.55rem 0 color-mix(in srgb, var(--paper-deep) 68%, transparent);
+  }
+
+  .hero__specimen-meta b {
     font-size: 1rem;
   }
 
@@ -1674,8 +1787,16 @@ svg {
     font-size: clamp(3rem, 14.5vw, 4.7rem);
   }
 
-  .hero__specimens {
-    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  .hero__specimen-frame {
+    aspect-ratio: 5 / 6;
+  }
+
+  .hero__specimen-meta {
+    gap: 0.45rem;
+  }
+
+  .hero__specimen-meta b {
+    font-size: 0.78rem;
   }
 
   .manifesto blockquote {
@@ -1737,6 +1858,10 @@ svg {
   .site-logo:hover .site-logo__contour,
   .site-logo:hover .site-logo__point {
     transform: none;
+  }
+
+  .hero__specimen-frame::before {
+    opacity: 0.32;
   }
 
 }

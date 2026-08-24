@@ -54,10 +54,11 @@
   });
 
   const atlasBackground = document.querySelector('[data-atlas-background]');
+  const heroSpecimen = document.querySelector('[data-hero-specimen]');
   const atlasMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   let atlas = null;
 
-  if (atlasBackground) {
+  if (atlasBackground || heroSpecimen) {
     atlas = makeContourAtlas(getSessionSeed());
   }
 
@@ -65,8 +66,115 @@
     initPageAtlasBackground(atlasBackground, atlas, atlasMotion);
   }
 
+  if (heroSpecimen && atlas) {
+    initHeroSpecimen(heroSpecimen, atlas, atlasMotion);
+  }
+
   initAtlasReveals(atlasMotion);
   initCardSurvey(atlas ? atlas.seed : 1);
+
+  function initHeroSpecimen(canvas, atlasData, reducedMotion) {
+    const frame = canvas.parentElement;
+    const renderer = createAtlasHeatRenderer(atlasData, canvas, { profile: 'specimen' });
+    const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    let width = 1;
+    let height = 1;
+    let currentX = 0;
+    let currentY = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let currentEnergy = 0.42;
+    let targetEnergy = 0.42;
+    let phase = (atlasData.seed % 997) / 997 * Math.PI * 2;
+    let frameId = 0;
+    let resizeObserver = null;
+
+    measure();
+    syncInteraction();
+    addMediaListener(reducedMotion, syncInteraction);
+    addMediaListener(systemTheme, refreshPalette);
+
+    if ('ResizeObserver' in window && frame) {
+      resizeObserver = new ResizeObserver(measure);
+      resizeObserver.observe(frame);
+    } else {
+      window.addEventListener('resize', measure, { passive: true });
+    }
+
+    if ('MutationObserver' in window) {
+      new MutationObserver(refreshPalette).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+
+    function measure() {
+      const bounds = frame ? frame.getBoundingClientRect() : canvas.getBoundingClientRect();
+      width = Math.max(bounds.width, 1);
+      height = Math.max(bounds.height, 1);
+      const ratioLimit = width < 460 ? 1 : 1.5;
+      renderer.resize(width, height, Math.min(window.devicePixelRatio || 1, ratioLimit));
+      currentX = targetX = width * 0.5;
+      currentY = targetY = height * 0.5;
+      draw();
+    }
+
+    function draw() {
+      renderer.render(currentX, currentY, currentEnergy, phase, 0, 0, width < 300 ? 25 : 31);
+    }
+
+    function refreshPalette() {
+      renderer.refreshPalette();
+      draw();
+    }
+
+    function handlePointer(event) {
+      if (reducedMotion.matches || (event.pointerType && event.pointerType !== 'mouse' && event.pointerType !== 'pen')) return;
+      const bounds = canvas.getBoundingClientRect();
+      targetX = clamp(event.clientX - bounds.left, 0, width);
+      targetY = clamp(event.clientY - bounds.top, 0, height);
+      targetEnergy = 0.78;
+      requestFrame();
+    }
+
+    function clearPointer() {
+      targetX = width * 0.5;
+      targetY = height * 0.5;
+      targetEnergy = 0.42;
+      requestFrame();
+    }
+
+    function renderFrame() {
+      frameId = 0;
+      currentX = lerp(currentX, targetX, 0.14);
+      currentY = lerp(currentY, targetY, 0.14);
+      currentEnergy = lerp(currentEnergy, targetEnergy, 0.1);
+      phase += Math.abs(currentEnergy - 0.42) * 0.035;
+      draw();
+
+      if (
+        Math.abs(currentX - targetX) > 0.12 ||
+        Math.abs(currentY - targetY) > 0.12 ||
+        Math.abs(currentEnergy - targetEnergy) > 0.002
+      ) requestFrame();
+    }
+
+    function requestFrame() {
+      if (!frameId) frameId = requestAnimationFrame(renderFrame);
+    }
+
+    function syncInteraction() {
+      canvas.removeEventListener('pointermove', handlePointer);
+      canvas.removeEventListener('pointerleave', clearPointer);
+      targetX = currentX = width * 0.5;
+      targetY = currentY = height * 0.5;
+      targetEnergy = currentEnergy = reducedMotion.matches ? 0.34 : 0.42;
+
+      if (!reducedMotion.matches) {
+        canvas.addEventListener('pointermove', handlePointer, { passive: true });
+        canvas.addEventListener('pointerleave', clearPointer, { passive: true });
+      }
+
+      draw();
+    }
+  }
 
   function initPageAtlasBackground(canvas, atlasData, reducedMotion) {
     const renderer = createAtlasHeatRenderer(atlasData, canvas);
@@ -318,7 +426,8 @@
     });
   }
 
-  function createAtlasHeatRenderer(atlasData, targetCanvas) {
+  function createAtlasHeatRenderer(atlasData, targetCanvas, options) {
+    const isSpecimen = Boolean(options && options.profile === 'specimen');
     let buffer = targetCanvas || document.createElement('canvas');
     let gl = buffer.getContext('webgl', {
       alpha: true,
@@ -371,6 +480,7 @@
         phase: gl.getUniformLocation(program, 'u_phase'),
         scrollOffset: gl.getUniformLocation(program, 'u_scroll_offset'),
         contourDensity: gl.getUniformLocation(program, 'u_contour_density'),
+        specimen: gl.getUniformLocation(program, 'u_specimen'),
         minimum: gl.getUniformLocation(program, 'u_minimum'),
         range: gl.getUniformLocation(program, 'u_range'),
         hills: gl.getUniformLocation(program, 'u_hills[0]'),
@@ -442,6 +552,7 @@
         gl.uniform1f(locations.phase, phase);
         gl.uniform2f(locations.scrollOffset, scrollX || 0, scrollY || 0);
         gl.uniform1f(locations.contourDensity, contourDensity || 24);
+        gl.uniform1f(locations.specimen, isSpecimen ? 1 : 0);
         gl.uniform3fv(locations.terrainLow, normalizeColor(terrainLowColor));
         gl.uniform3fv(locations.terrainHigh, normalizeColor(terrainHighColor));
         gl.uniform3fv(locations.terrainLine, normalizeColor(terrainLineColor));
@@ -458,26 +569,62 @@
       const data = imageData.data;
       const radius = Math.max(Math.min(displayWidth, displayHeight) * 0.22, 90);
       const gridFade = clamp(energy * 5, 0, 1);
+      const specimenSize = Math.min(displayWidth, displayHeight);
+      const specimenLenses = [
+        { x: -0.14, y: -0.25, radius: 0.18, scale: 0.52 },
+        { x: 0.16, y: -0.03, radius: 0.235, scale: 0.62 },
+        { x: 0.02, y: 0.3, radius: 0.27, scale: 0.48 }
+      ];
 
       for (let row = 0; row < buffer.height; row += 1) {
         const pixelY = row / pixelRatio;
         for (let column = 0; column < buffer.width; column += 1) {
-          const sourceColumn = Math.round(clamp(column + scrollX * buffer.width, 0, buffer.width - 1));
-          const sourceRow = Math.round(clamp(row + scrollY * buffer.height, 0, buffer.height - 1));
-          const index = sourceRow * buffer.width + sourceColumn;
           const pixelX = column / pixelRatio;
+          let sourceColumn = Math.round(clamp(column + scrollX * buffer.width, 0, buffer.width - 1));
+          let sourceRow = Math.round(clamp(row + scrollY * buffer.height, 0, buffer.height - 1));
+          let lensMask = 0;
+          let lensRing = 0;
+
+          if (isSpecimen) {
+            const specimenX = (pixelX - displayWidth * 0.5) / specimenSize;
+            const specimenY = (pixelY - displayHeight * 0.5) / specimenSize;
+            let activeLens = null;
+
+            specimenLenses.forEach(function (lens) {
+              const lensDistance = Math.sqrt(Math.pow(specimenX - lens.x, 2) + Math.pow(specimenY - lens.y, 2));
+              const mask = clamp((lens.radius - lensDistance) / 0.015, 0, 1);
+              const ring = clamp(1 - Math.abs(lensDistance - lens.radius) / 0.006, 0, 1);
+              if (mask >= lensMask) activeLens = lens;
+              lensMask = Math.max(lensMask, mask);
+              lensRing = Math.max(lensRing, ring);
+            });
+
+            if (activeLens && lensMask > 0) {
+              const lensCenterX = displayWidth * 0.5 + activeLens.x * specimenSize;
+              const lensCenterY = displayHeight * 0.5 + activeLens.y * specimenSize;
+              const magnifiedX = lensCenterX + (pixelX - lensCenterX) * activeLens.scale;
+              const magnifiedY = lensCenterY + (pixelY - lensCenterY) * activeLens.scale;
+              sourceColumn = Math.round(clamp(magnifiedX * pixelRatio, 0, buffer.width - 1));
+              sourceRow = Math.round(clamp(magnifiedY * pixelRatio, 0, buffer.height - 1));
+            }
+          }
+
+          const index = sourceRow * buffer.width + sourceColumn;
           const dx = pixelX - focusX;
           const dy = pixelY - focusY;
           const distance = Math.sqrt(dx * dx + dy * dy);
           const falloff = distance < radius ? Math.pow(1 - distance / radius, 2) : 0;
           const ripple = falloff * Math.sin(distance / radius * Math.PI * 4 - phase) * energy * 0.055;
-          const height = clamp(baseField[index] + falloff * energy * 0.18 + ripple, 0, 1);
-          const toneLevels = Math.max(contourDensity * 0.68, 12);
+          let height = clamp(baseField[index] + falloff * energy * 0.18 + ripple, 0, 1);
+          if (isSpecimen) height = lerp(height, 1 - height, lensMask * 0.78);
+          const localDensity = contourDensity + (isSpecimen ? lensMask * 10 : 0);
+          const toneLevels = Math.max(localDensity * 0.68, 12);
           const band = clamp(Math.floor(height * toneLevels) / Math.max(toneLevels - 1, 1), 0, 1);
-          const shade = 0.16 + band * 0.72;
+          const shade = isSpecimen ? 0.06 + band * 0.88 : 0.16 + band * 0.72;
           let color = mixColor(terrainLowColor, terrainHighColor, shade);
-          const contour = Math.abs(height * contourDensity - Math.round(height * contourDensity)) < 0.045;
+          const contour = Math.abs(height * localDensity - Math.round(height * localDensity)) < 0.045;
           if (contour) color = mixColor(color, terrainLineColor, 0.82);
+          if (isSpecimen && lensRing > 0) color = mixColor(color, terrainHighColor, lensRing * 0.72);
 
           const reveal = clamp(1 - distance / radius, 0, 1);
           const longitudeValue = (column / buffer.width + scrollX) * 24;
@@ -523,6 +670,7 @@
         'uniform vec4 u_hills[' + atlasData.hills.length + '];',
         'uniform vec2 u_scroll_offset;',
         'uniform float u_contour_density;',
+        'uniform float u_specimen;',
         'uniform vec3 u_terrain_low;',
         'uniform vec3 u_terrain_high;',
         'uniform vec3 u_terrain_line;',
@@ -569,15 +717,44 @@
         '  mapUv += u_scroll_offset;',
         '  vec2 warpedUv = mapUv + direction * wave * falloff * u_energy * 0.026;',
         '  warpedUv += vec2(-direction.y, direction.x) * falloff * u_energy * 0.012;',
+        '  float specimenSize = min(u_resolution.x, u_resolution.y);',
+        '  vec2 specimenUv = (pixel - u_resolution * 0.5) / specimenSize;',
+        '  vec2 specimenDirection = specimenUv / max(length(specimenUv), 0.001);',
+        '  warpedUv += specimenDirection * sin(length(specimenUv) * 38.0 - u_phase * 0.25) * u_specimen * u_energy * 0.009;',
         '  float height = terrain(warpedUv);',
+        '  float lensDistanceA = length(specimenUv - vec2(-0.14, -0.25));',
+        '  float lensDistanceB = length(specimenUv - vec2(0.16, -0.03));',
+        '  float lensDistanceC = length(specimenUv - vec2(0.02, 0.30));',
+        '  float lensA = 0.0;',
+        '  float lensB = 0.0;',
+        '  float lensC = 0.0;',
+        '  if (u_specimen > 0.5) {',
+        '    lensA = 1.0 - smoothstep(0.165, 0.18, lensDistanceA);',
+        '    lensB = 1.0 - smoothstep(0.22, 0.235, lensDistanceB);',
+        '    lensC = 1.0 - smoothstep(0.255, 0.27, lensDistanceC);',
+        '    float sampleA = terrain(vec2(0.30, 0.26) + (warpedUv - vec2(0.30, 0.26)) * 0.52);',
+        '    float sampleB = terrain(vec2(0.67, 0.41) + (warpedUv - vec2(0.67, 0.41)) * 0.62);',
+        '    float sampleC = terrain(vec2(0.52, 0.72) + (warpedUv - vec2(0.52, 0.72)) * 0.48);',
+        '    height = mix(height, 1.0 - sampleA, lensA * 0.78);',
+        '    height = mix(height, 1.0 - sampleB, lensB * 0.72);',
+        '    height = mix(height, 1.0 - sampleC, lensC * 0.82);',
+        '  }',
         '  height = clamp(height + falloff * u_energy * 0.16 + wave * falloff * u_energy * 0.05, 0.0, 1.0);',
-        '  float contourDensity = max(u_contour_density, 12.0);',
+        '  float lensMask = max(lensA, max(lensB, lensC)) * u_specimen;',
+        '  float contourDensity = max(u_contour_density + lensMask * 10.0, 12.0);',
         '  float toneLevels = max(contourDensity * 0.68, 12.0);',
         '  float band = clamp(floor(height * toneLevels) / max(toneLevels - 1.0, 1.0), 0.0, 1.0);',
-        '  vec3 color = mix(u_terrain_low, u_terrain_high, 0.16 + band * 0.72);',
+        '  float shade = mix(0.16 + band * 0.72, 0.06 + band * 0.88, u_specimen);',
+        '  vec3 color = mix(u_terrain_low, u_terrain_high, shade);',
         '  float contourDistance = abs(height * contourDensity - floor(height * contourDensity + 0.5));',
         '  float contour = 1.0 - smoothstep(0.03, 0.068, contourDistance);',
         '  color = mix(color, u_terrain_line, contour * 0.82);',
+        '  float lensRingA = 1.0 - smoothstep(0.004, 0.009, abs(lensDistanceA - 0.18));',
+        '  float lensRingB = 1.0 - smoothstep(0.004, 0.009, abs(lensDistanceB - 0.235));',
+        '  float lensRingC = 1.0 - smoothstep(0.004, 0.009, abs(lensDistanceC - 0.27));',
+        '  float lensRing = max(lensRingA, max(lensRingB, lensRingC)) * u_specimen;',
+        '  color = mix(color, u_terrain_high, lensRing * 0.72);',
+        '  color = mix(color, u_survey, lensRingC * u_specimen * 0.22);',
         '  float longitude = gridLine(warpedUv.x, 24.0, 24.0 / u_resolution.x * 1.0);',
         '  float latitude = gridLine(warpedUv.y, 16.0, 16.0 / u_resolution.y * 1.0);',
         '  float meridian = 1.0 - smoothstep(0.8, 1.8, abs(delta.x));',
