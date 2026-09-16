@@ -1423,6 +1423,23 @@ svg {
   font-weight: 400;
 }
 
+.archive-months {
+  min-width: 0;
+}
+
+.archive-month + .archive-month {
+  border-top: 1px solid var(--line);
+}
+
+.archive-month h3 {
+  margin: 0;
+  padding: 1.3rem 0 0.5rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
 .archive-year ol,
 .tag-section ol {
   padding: 0;
@@ -1450,6 +1467,8 @@ svg {
 }
 
 .archive-year a {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: var(--serif);
   font-size: 1.12rem;
   text-decoration: none;

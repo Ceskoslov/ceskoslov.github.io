@@ -11,18 +11,28 @@
     <p>{{ page.description }}</p>
   </header>
   <div class="page-content archive">
-    {% for year, posts in writing.pages | group_by(attribute="year") %}
+    {% set years = writing.pages | group_by(attribute="year") %}
+    {% for year in years | keys | sort | reverse %}
       <section class="archive-year">
         <h2>{{ year }}</h2>
-        <ol>
-          {% for post in posts %}
-            <li>
-              <time datetime="{{ post.date }}">{{ post.date | date(format="%m.%d") }}</time>
-              <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
-              <span>{{ post.reading_time }} min</span>
-            </li>
+        <div class="archive-months">
+          {% set months = years[year] | group_by(attribute="month") %}
+          {% for month in months | keys | sort | reverse %}
+            {% set posts = months[month] %}
+            <section class="archive-month">
+              <h3>{{ posts[0].date | date(format="%m") }}</h3>
+              <ol>
+                {% for post in posts %}
+                  <li>
+                    <time datetime="{{ post.date }}">{{ post.date | date(format="%m.%d") }}</time>
+                    <a href="{{ post.permalink | safe }}">{{ post.title }}</a>
+                    <span>{{ post.reading_time }} min</span>
+                  </li>
+                {% endfor %}
+              </ol>
+            </section>
           {% endfor %}
-        </ol>
+        </div>
       </section>
     {% endfor %}
   </div>
