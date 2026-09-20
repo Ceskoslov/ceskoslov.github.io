@@ -133,6 +133,22 @@ Site information is in `zola.toml`, the about page is `content/about.md`, and th
 
 Use `updated = 2026-09-21` in front matter when revising an article. Set
 `language = "zh-CN"` under `[extra]` for Chinese articles (the default is English).
+Prefer language metadata to topic tags:
+
+```toml
+[taxonomies]
+tags = ["Minds"]
+
+[extra]
+language = "zh-CN" # use "en" for English
+```
+
+Cards and article headers show a separate language badge. The language also controls
+HTML `lang` for articles and card titles. Existing `CN`/`EN` tags remain a fallback
+when `extra.language` is absent; explicit metadata takes precedence. Those legacy
+labels are omitted from card/article topic lists, while their tag archive URLs remain
+available. You can remove the legacy tags after setting `extra.language`.
+
 Articles with at least three top-level headings automatically receive a collapsible
 table of contents. Keep descriptions meaningful, or omit them.
 

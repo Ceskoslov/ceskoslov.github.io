@@ -1970,3 +1970,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex="0"]:foc
 .atlas-unavailable .atlas-reveal__inner,
 .atlas-unavailable .manifesto__line { opacity: 1; clip-path: none; transform: none; }
 :root[data-atlas-mode="quiet"] .manifesto__scan { display: none; }
+
+.language-badge { padding: 0.1em 0.45em; border: 1px solid var(--line); font: inherit; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; }
+.post-card__meta { flex-wrap: wrap; align-items: center; padding-right: 1.5rem; }
+.post-card__title:lang(zh) { letter-spacing: 0; line-height: 1.25; }

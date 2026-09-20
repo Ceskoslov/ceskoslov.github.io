@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{% if page and page.extra.language %}{{ page.extra.language }}{% else %}{{ config.default_language }}{% endif %}">
+<html lang="{% if page %}{{<article_language post={page} default_language={config.default_language} />}}{% else %}{{ config.default_language }}{% endif %}">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

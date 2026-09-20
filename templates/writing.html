@@ -9,7 +9,7 @@
   </header>
   <div class="post-grid">
     {% for post in section.pages %}
-      {{<post_card post />}}
+      {{<post_card post default_language={config.default_language} />}}
     {% else %}
       <p>No posts yet.</p>
     {% endfor %}

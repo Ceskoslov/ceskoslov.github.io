@@ -58,7 +58,7 @@
     <div class="post-grid">
       {% for post in writing.pages %}
         {% if loop.index <= 6 %}
-        {{<post_card post featured={loop.first} />}}
+        {{<post_card post default_language={config.default_language} featured={loop.first} />}}
         {% endif %}
       {% endfor %}
     </div>

@@ -9,6 +9,7 @@
     <div class="post-header__meta">
       <time datetime="{{ page.date }}">{{ page.date | date(format="%Y.%m.%d") }}</time>
       <span>{{ page.reading_time }} min read</span>
+      {{<language_badge post={page} default_language={config.default_language} />}}
       {% if page.updated %}<span>Updated <time datetime="{{ page.updated }}">{{ page.updated | date(format="%Y.%m.%d") }}</time></span>{% endif %}
     </div>
     <h1>{{ page.title }}</h1>
@@ -16,7 +17,9 @@
     {% if page.taxonomies.tags %}
       <ul class="tag-list tag-list--post" aria-label="Post tags">
         {% for tag in page.taxonomies.tags %}
+{% if tag != "EN" and tag != "CN" %}
           <li><a href="{{ get_taxonomy_url(kind='tags', name=tag) | safe }}">#{{ tag }}</a></li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% endif %}

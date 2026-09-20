@@ -56,7 +56,15 @@ Text.
 ## Three
 Text.
 ''')
-    subprocess.run(['zola', '--root', str(site), 'check', '--skip-external-links'], check=True)
+    for name, tags, extra, expected in (
+        ('legacy-cn', '["CN"]', '', 'zh-CN'),
+        ('legacy-en', '["EN"]', '', 'en'),
+        ('explicit-language', '["CN"]', '[extra]\nlanguage = "en"', 'en'),
+        ('default-language', '[]', '', 'en'),
+    ):
+        (writing / f'{name}.md').write_text(
+            f'+++\ntitle = "{name}"\ndate = 2026-09-21\n[taxonomies]\ntags = {tags}\n{extra}\n+++\nFixture.')
+    subprocess.run(['zola', '--root', str(site), 'check' , '--skip-external-links'], check=True)
     subprocess.run(['zola', '--root', str(site), 'build'], check=True)
     public = site / 'public'
     for route in ('index.html', 'writing/index.html', 'archive/index.html', 'tags/index.html', 'about/index.html'):
@@ -83,6 +91,11 @@ Text.
     for path in (public / 'tags').glob('*/index.html'):
         html = path.read_text()
         assert Head(html).meta['og:title'] == re.search(r'<title>(.*?)</title>', html).group(1)
+    for name, expected in (('legacy-cn', 'zh-CN'), ('legacy-en', 'en'), ('explicit-language', 'en'), ('default-language', 'en')):
+        html = (public / f'writing/{name}/index.html').read_text()
+        assert Head(html).language == expected, name
+        assert re.search(r'class=language-badge[^>]*>' + expected + r'</span>', html), name
+        assert '#CN' not in html and '#EN' not in html, name
     entries = ET.parse(public / 'atom.xml').findall('{http://www.w3.org/2005/Atom}entry')
     assert len(entries) > 6  # Home is capped, subscription remains complete.
     print('PASS: public routes, cross-year/month ordering, draft/metadata exclusion, language, sharing, feed completeness')
