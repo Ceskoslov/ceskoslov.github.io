@@ -4,3 +4,5 @@ public/
 
 # Windows download metadata
 *:Zone.Identifier
+
+node_modules/

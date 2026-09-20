@@ -43,7 +43,7 @@ zola serve --drafts
 To check and build the site:
 
 ```bash
-zola check
+zola check --skip-external-links
 zola build
 ```
 
@@ -144,3 +144,38 @@ The homepage shows the latest six posts; `/writing/` and `/archive/` contain the
 `extra.social_image` provides the default sharing image. An article can override it with
 `social_image` and `social_image_alt` under `[extra]` (paths relative to `static/`).
 The default PNG is rendered from `static/assets/images/social-card.svg`.
+
+### Rendering and checks
+
+The site remains a Zola build with no front-end framework. `main.js` owns navigation,
+theme, tables, and the quiet-reading preference; `atlas.js` owns decorative rendering.
+Quiet reading persists across pages and skips terrain initialization on the next load.
+WebGL rendering is capped at 1.5 DPR and about two million pixels per canvas. Without
+WebGL, a static CPU-rendered field uses at most about 180,000 pixels; it only redraws
+on resize or palette changes. Reduced motion disables interaction and reveal motion.
+
+Run the publishing regression checks with Python 3 and Zola:
+
+```bash
+python3 tests/site_regression.py
+```
+
+Browser checks require Node.js 22 and development dependencies (not needed to build
+or publish the site):
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+```
+
+To use an existing Chromium installation, set `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
+Tests build disposable sites outside the repository, including fixture articles for
+archive ordering, draft exclusion, metadata, wide tables, and renderer failure modes.
+PRs run these checks in GitHub Actions. Deployment depends on the same reusable
+checks workflow, so both publishing and browser checks must pass before deployment.
+
+External link checks are separate: run `zola check` manually. LinkedIn may return
+HTTP 999 to automated requests; check that profile in a browser instead of treating
+that response as proof of a broken link. External service availability does not block
+local content validation or deployment.

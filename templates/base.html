@@ -9,6 +9,7 @@
       try {
         const theme = localStorage.getItem('chaos-theme');
         if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+        if (localStorage.getItem('atlas-mode') === 'quiet') document.documentElement.dataset.atlasMode = 'quiet';
       } catch (error) { /* System theme remains available without storage. */ }
     </script>
 
@@ -62,6 +63,7 @@
     <link rel="stylesheet" href="{{ get_url(path='assets/css/style.css', cachebust=true) | safe }}">
     <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="{{ get_url(path='atom.xml') | safe }}">
     <script defer src="{{ get_url(path='assets/js/main.js', cachebust=true) | safe }}"></script>
+    <script defer src="{{ get_url(path='assets/js/atlas.js', cachebust=true) | safe }}"></script>
   </head>
   <body class="{% block body_class %}page-default{% endblock body_class %}">
     <a class="skip-link" href="#content">Skip to content</a>
@@ -120,6 +122,7 @@
         <div class="site-footer__links">
           <a href="{{ get_url(path='atom.xml') | safe }}">Subscribe (Atom)</a>
           <a href="https://github.com/{{ config.extra.github_username }}" rel="me">GitHub</a>
+          <button class="quiet-toggle" type="button" aria-pressed="false" hidden>Quiet reading</button>
           <button class="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
             <span class="theme-toggle__icon" aria-hidden="true">◐</span>
           </button>

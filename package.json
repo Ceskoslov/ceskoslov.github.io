@@ -1,0 +1,10 @@
+{
+  "name": "ceskoslov-site-checks",
+  "private": true,
+  "scripts": {
+    "test": "python3 tests/site_regression.py && node tests/browser.cjs",
+    "test:site": "python3 tests/site_regression.py",
+    "test:browser": "node tests/browser.cjs"
+  },
+  "devDependencies": { "playwright": "1.58.2" }
+}
