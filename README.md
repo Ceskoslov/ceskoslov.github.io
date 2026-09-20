@@ -128,3 +128,10 @@ Site information is in `zola.toml`, the about page is `content/about.md`, and th
 ├── templates/           # Tera page templates
 └── zola.toml            # Zola site configuration
 ```
+
+### Reading metadata
+
+Use `updated = 2026-09-21` in front matter when revising an article. Set
+`language = "zh-CN"` under `[extra]` for Chinese articles (the default is English).
+Articles with at least three top-level headings automatically receive a collapsible
+table of contents. Keep descriptions meaningful, or omit them.

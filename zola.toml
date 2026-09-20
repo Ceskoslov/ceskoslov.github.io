@@ -18,7 +18,7 @@ taxonomies = [
 smart_punctuation = true
 external_links_target_blank = true
 external_links_no_follow = false
-external_links_no_referrer = false
+external_links_no_referrer = true
 
 [markdown.highlighting]
 style = "inline"
