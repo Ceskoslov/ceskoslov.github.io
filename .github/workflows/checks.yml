@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: python3 scripts/drafts.py check
       - uses: taiki-e/install-action@v2
         with:
           tool: zola@0.23.3

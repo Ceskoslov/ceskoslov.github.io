@@ -78,6 +78,7 @@ fn main() {
 
 Posts are sorted by the front matter `date`; the filename date is a naming convention.
 Include `draft = true` in the front matter to mark it as a draft.
+Drafts are local-only; Zola's draft setting alone does not prevent Git tracking.
 
 ### Inserting Images
 
@@ -197,3 +198,34 @@ External link checks are separate: run `zola check` manually. LinkedIn may retur
 HTTP 999 to automated requests; check that profile in a browser instead of treating
 that response as proof of a broken link. External service availability does not block
 local content validation or deployment.
+
+### Keeping drafts out of Git
+
+Enable the versioned pre-commit hook once after cloning (Python 3.11+ required):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Use names such as `my-idea.draft.md` for new drafts: these are ignored automatically.
+For drafts with other filenames, or published articles changed back to drafts, run:
+
+```bash
+python3 scripts/drafts.py sync
+```
+
+This reads TOML front matter, removes `draft = true` files from Git's index without
+removing the Markdown files, and maintains local rules in `.git/info/exclude`.
+It refuses to force removal over conflicting staged changes. The pre-commit hook
+checks the **staged content**, so `git add -f` cannot silently include a draft in a
+normal commit. CI repeats the check, blocking deployment if hooks were bypassed.
+Git hooks can be bypassed and are not a security boundary.
+
+To publish, set `draft = false`, rename `*.draft.md` / `draft-*.md` to a regular post
+filename, run the sync command again, and then `git add` the article. Existing
+`draft = false` posts are never automatically staged by the sync command.
+
+`public/` and `.zola/` are disposable local build output/cache; remove them when
+cleaning a draft preview. Removing index entries or build output does not erase
+old Git commits or already-deployed remote copies. History removal is a separate
+operation requiring coordination with any remote repository and other clones.

@@ -6,3 +6,7 @@ public/
 *:Zone.Identifier
 
 node_modules/
+
+# Private drafts: use *.draft.md for automatic filename-based exclusion.
+/content/**/*.draft.md
+/content/writing/draft-*.md
