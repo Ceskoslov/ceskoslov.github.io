@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block body_class %}page-page{% endblock body_class %}
+{% block content %}
+<section class="page-shell" aria-labelledby="writing-title">
+  <header class="page-header">
+    <p class="eyebrow"><span></span> Writing / All posts</p>
+    <h1 id="writing-title">{{ section.title }}</h1>
+    <p>{{ section.description }}</p>
+  </header>
+  <div class="post-grid">
+    {% for post in section.pages %}
+      {{<post_card post />}}
+    {% else %}
+      <p>No posts yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock content %}

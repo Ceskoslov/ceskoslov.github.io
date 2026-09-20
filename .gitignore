@@ -1,3 +1,6 @@
 public/
 .zola/
 
+
+# Windows download metadata
+*:Zone.Identifier

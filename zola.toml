@@ -1,7 +1,8 @@
 base_url = "https://ceskoslov.github.io"
 title = "Ceskoslov"
-description = "Notes from ..."
+description = "Notes on software, agents, design, and everyday life."
 default_language = "en"
+ignored_content = ["*:Zone.Identifier", "**/*:Zone.Identifier"]
 compile_sass = false
 minify_html = true
 generate_feeds = true

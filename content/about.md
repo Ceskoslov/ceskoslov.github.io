@@ -1,14 +1,14 @@
 +++
 title = "About"
-description = "Hello, I'm ..."
+description = "Software, agents, design, and notes from everyday life."
 template = "page.html"
 path = "about"
 
 [extra]
-kicker = "Hero"
+kicker = "About / Profile"
 +++
 
-This is where I???
+I'm Ceskoslov. This atlas collects my notes on building software and agents, experiments in visual design, and reflections in Chinese and English.
 
 ## Find Me
 
