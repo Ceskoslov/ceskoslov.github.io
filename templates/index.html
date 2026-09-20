@@ -33,16 +33,21 @@
 </section>
 
 {% if config.extra.featured_posts %}
-<section class="featured-posts" aria-labelledby="featured-posts">
-  <header class="section-heading"><h2 id="featured-posts">Selected Writing</h2></header>
-  <ul class="featured-list">
+<section class="post-feed post-feed--selected" aria-labelledby="featured-posts">
+  <header class="section-heading">
+    <h2 id="featured-posts" class="atlas-reveal atlas-reveal--section" data-atlas-reveal>
+      <span class="atlas-reveal__line"><span class="atlas-reveal__inner">Selected Writing</span></span>
+    </h2>
+    <span>CURATED</span>
+  </header>
+  <div class="post-grid">
     {% for path in config.extra.featured_posts %}
       {% set selected = get_page(path=path) %}
       {% if not selected.draft %}
-      <li><a href="{{ selected.permalink | safe }}">{{ selected.title }}</a>{% if selected.description %}<p>{{ selected.description }}</p>{% endif %}</li>
+      {{<post_card post={selected} default_language={config.default_language} featured={loop.first} />}}
       {% endif %}
     {% endfor %}
-  </ul>
+  </div>
 </section>
 {% endif %}
 

@@ -81,7 +81,7 @@ Text.
     for route in ('index.html', 'writing/index.html', 'archive/index.html'):
         assert 'Hidden fixture' not in (public / route).read_text()
     home = (public / 'index.html').read_text()
-    assert len(re.findall(r'<article class=["\']?post-card', home)) == 6
+    assert len(re.findall(r'<article class=["\']?post-card', home)) == 8  # Two selected + six latest.
     article = (public / 'writing/fixture-language/index.html').read_text()
     head = Head(article)
     assert head.language == 'zh-CN'

@@ -45,6 +45,17 @@ const { execFileSync } = require('node:child_process');
     console.log('Checking navigation and article reading…');
     const page = await pageFor();
     await page.goto(base);
+    const selectedCards = page.locator('.post-feed--selected .post-card');
+    const latestCards = page.locator('.post-feed:not(.post-feed--selected) .post-card');
+    assert.equal(await selectedCards.count(), 2);
+    assert.equal(await latestCards.count(), 6);
+    for (const cards of [selectedCards, latestCards]) {
+      assert.equal(await cards.first().locator('.post-card__meta time').count(), 1);
+      assert.equal(await cards.first().locator('.language-badge').count(), 1);
+    }
+    const headingSizes = await page.locator('.section-heading h2 .atlas-reveal__inner').evaluateAll(nodes => nodes.map(n => getComputedStyle(n).fontSize));
+    assert.equal(headingSizes[0], headingSizes[1]);
+    assert.ok(parseFloat(headingSizes[0]) >= 32);
     await page.locator('.menu-toggle').click();
     await page.waitForFunction(() => document.activeElement === document.querySelector('.site-nav a'));
     assert.equal(await page.locator('main').evaluate(e => e.inert), true);

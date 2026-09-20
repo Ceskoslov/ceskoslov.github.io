@@ -156,6 +156,8 @@ table of contents. Keep descriptions meaningful, or omit them.
 
 `extra.profile_intro` controls the short homepage introduction independently of About.
 `extra.featured_posts` lists content paths for selected writing; remove entries to hide them.
+Selected Writing and Latest Posts share the same article cards; selections retain the
+configured order and can also appear in the chronological feed.
 The homepage shows the latest six posts; `/writing/` and `/archive/` contain the full list.
 `extra.social_image` provides the default sharing image. An article can override it with
 `social_image` and `social_image_alt` under `[extra]` (paths relative to `static/`).
