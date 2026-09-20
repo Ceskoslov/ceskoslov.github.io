@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#eef0ec"/>
+  <g fill="none" stroke="#52696f" opacity=".3" transform="translate(910 300)">
+    <ellipse rx="270" ry="340" transform="rotate(28)"/><ellipse rx="240" ry="300" transform="rotate(28)"/>
+    <ellipse rx="210" ry="260" transform="rotate(28)"/><ellipse rx="180" ry="220" transform="rotate(28)"/>
+    <ellipse rx="150" ry="180" transform="rotate(28)"/><ellipse rx="120" ry="140" transform="rotate(28)"/>
+    <ellipse rx="90" ry="100" transform="rotate(28)"/><ellipse rx="60" ry="60" transform="rotate(28)"/>
+    <path d="M-310 0H310M0-340V340"/>
+  </g>
+  <path d="M64 60H280" stroke="#b84435" stroke-width="5"/>
+  <text x="64" y="130" fill="#b84435" font-family="monospace" font-size="20" letter-spacing="4">NOTES / FIELDWORK</text>
+  <text x="60" y="290" fill="#111718" font-family="Georgia,serif" font-size="96">Ceskoslov’s Atlas</text>
+  <text x="64" y="375" fill="#52696f" font-family="sans-serif" font-size="28">Software, agents, design, and everyday life.</text>
+  <path d="M64 510H1136" stroke="#b9c3c2"/>
+  <text x="64" y="564" fill="#111718" font-family="monospace" font-size="22">ceskoslov.github.io</text>
+  <circle cx="910" cy="300" r="5" fill="#b84435"/>
+</svg>

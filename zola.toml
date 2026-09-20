@@ -31,5 +31,7 @@ anchors = "on"
 
 [extra]
 author = "ceskoslov"
-author_bio = "Sirens,,,"
+profile_intro = "Notes on software and agents, experiments in visual design, and reflections in Chinese and English."
+featured_posts = ["writing/2026-09-17-building-a-trustworthy-agent-runtime.md", "writing/2026-08-19-building-a-living-atlas.md"]
+social_image = "assets/images/social-card.png"
 github_username = "ceskoslov"

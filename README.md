@@ -135,3 +135,12 @@ Use `updated = 2026-09-21` in front matter when revising an article. Set
 `language = "zh-CN"` under `[extra]` for Chinese articles (the default is English).
 Articles with at least three top-level headings automatically receive a collapsible
 table of contents. Keep descriptions meaningful, or omit them.
+
+### Homepage and sharing
+
+`extra.profile_intro` controls the short homepage introduction independently of About.
+`extra.featured_posts` lists content paths for selected writing; remove entries to hide them.
+The homepage shows the latest six posts; `/writing/` and `/archive/` contain the full list.
+`extra.social_image` provides the default sharing image. An article can override it with
+`social_image` and `social_image_alt` under `[extra]` (paths relative to `static/`).
+The default PNG is rendered from `static/assets/images/social-card.svg`.

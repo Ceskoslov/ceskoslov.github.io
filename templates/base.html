@@ -15,6 +15,12 @@
     {% if page %}
       {% set meta_title = page.title ~ " · " ~ config.title %}
       {% set meta_description = page.description | default(value=config.description) %}
+    {% elif term %}
+      {% set meta_title = "#" ~ term.name ~ " · " ~ config.title %}
+      {% set meta_description = "Posts tagged " ~ term.name ~ "." %}
+    {% elif taxonomy %}
+      {% set meta_title = "Tags · " ~ config.title %}
+      {% set meta_description = "Browse essays and notes by topic." %}
     {% elif section %}
       {% set meta_title = section.title | default(value=config.title) %}
       {% set meta_description = section.description | default(value=config.description) %}
@@ -28,9 +34,29 @@
     <meta property="og:title" content="{{ meta_title }}">
     <meta property="og:description" content="{{ meta_description }}">
     <meta property="og:type" content="{% if page and page.date %}article{% else %}website{% endif %}">
-    {% if current_url %}<meta property="og:url" content="{{ current_url | safe }}">{% endif %}
+    {% if current_url %}
+      <meta property="og:url" content="{{ current_url | safe }}">
+      <link rel="canonical" href="{{ current_url | safe }}">
+    {% endif %}
+    {% if page and page.date %}
+      <meta property="article:published_time" content="{{ page.date }}">
+      {% if page.updated %}<meta property="article:modified_time" content="{{ page.updated }}">{% endif %}
+    {% endif %}
+    {% if page and page.extra.social_image %}
+      {% set social_image = page.extra.social_image %}
+      {% set social_alt = page.extra.social_image_alt | default(value=page.title) %}
+    {% else %}
+      {% set social_image = config.extra.social_image %}
+      {% set social_alt = config.title ~ " — notes on software, design, and everyday life" %}
+    {% endif %}
+    <meta property="og:image" content="{{ get_url(path=social_image) | safe }}">
+    <meta property="og:image:alt" content="{{ social_alt }}">
+    <meta name="twitter:image" content="{{ get_url(path=social_image) | safe }}">
+    <meta name="twitter:image:alt" content="{{ social_alt }}">
+    <meta name="twitter:title" content="{{ meta_title }}">
+    <meta name="twitter:description" content="{{ meta_description }}">
     <meta property="og:site_name" content="{{ config.title }}">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="icon" href="{{ get_url(path='assets/images/favicon.svg', cachebust=true) | safe }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ get_url(path='assets/css/style.css', cachebust=true) | safe }}">
@@ -76,7 +102,7 @@
       </button>
 
       <nav class="site-nav" id="site-navigation" aria-label="Main navigation">
-        <a href="{{ config.base_url | safe }}"{% if nav_path == '/' %} class="is-active" aria-current="page"{% endif %}>Posts</a>
+        <a href="{{ get_url(path='writing/') | safe }}"{% if nav_path == '/' or nav_path is starting_with(pat="/writing") %} class="is-active" aria-current="page"{% endif %}>Posts</a>
         <a href="{{ get_url(path='archive') | safe }}"{% if nav_path is starting_with(pat="/archive") %} class="is-active" aria-current="page"{% endif %}>Archive</a>
         <a href="{{ get_url(path='tags') | safe }}"{% if nav_path is starting_with(pat="/tags") %} class="is-active" aria-current="page"{% endif %}>Tags</a>
         <a href="{{ get_url(path='about') | safe }}"{% if nav_path is starting_with(pat="/about") %} class="is-active" aria-current="page"{% endif %}>About</a>
@@ -92,7 +118,7 @@
       <div class="site-footer__inner">
         <p>© {{ now() | date(format="%Y") }} {{ config.extra.author }} · Built with Zola.</p>
         <div class="site-footer__links">
-          <!--<a href="{{ get_url(path='atom.xml') | safe }}">RSS</a>-->
+          <a href="{{ get_url(path='atom.xml') | safe }}">Subscribe (Atom)</a>
           <a href="https://github.com/{{ config.extra.github_username }}" rel="me">GitHub</a>
           <button class="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">
             <span class="theme-toggle__icon" aria-hidden="true">◐</span>

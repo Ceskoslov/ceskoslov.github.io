@@ -5,16 +5,16 @@
 
 {% block content %}
 {% set writing = get_section(path="writing/_index.md") %}
-{% set about = get_page(path="about.md") %}
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero__index" aria-hidden="true">PROFILE / 001</div>
   <div class="hero__content">
-    <p class="eyebrow"><span></span> {{ about.extra.kicker | default(value="About / Profile") }}</p>
+    <p class="eyebrow"><span></span> About / Profile</p>
     <h1 id="hero-title" class="atlas-reveal atlas-reveal--hero" data-atlas-reveal>
       <span class="atlas-reveal__line"><span class="atlas-reveal__inner">{{ section.title }}</span></span>
     </h1>
     <div class="hero__profile">
-      {{ about.content | safe }}
+      <p>{{ config.extra.profile_intro }}</p>
+      <p><a href="{{ get_url(path='about/') | safe }}">About & contact ↗</a></p>
     </div>
   </div>
   <aside class="hero__specimens" aria-label="Generated terrain specimen and language fragments">
@@ -32,6 +32,20 @@
   </aside>
 </section>
 
+{% if config.extra.featured_posts %}
+<section class="featured-posts" aria-labelledby="featured-posts">
+  <header class="section-heading"><h2 id="featured-posts">Selected Writing</h2></header>
+  <ul class="featured-list">
+    {% for path in config.extra.featured_posts %}
+      {% set selected = get_page(path=path) %}
+      {% if not selected.draft %}
+      <li><a href="{{ selected.permalink | safe }}">{{ selected.title }}</a>{% if selected.description %}<p>{{ selected.description }}</p>{% endif %}</li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section class="post-feed" aria-labelledby="latest-posts">
   <header class="section-heading">
     <h2 id="latest-posts" class="atlas-reveal atlas-reveal--section" data-atlas-reveal>
@@ -43,9 +57,12 @@
   {% if writing.pages %}
     <div class="post-grid">
       {% for post in writing.pages %}
+        {% if loop.index <= 6 %}
         {{<post_card post featured={loop.first} />}}
+        {% endif %}
       {% endfor %}
     </div>
+    <p class="feed-more"><a href="{{ get_url(path='writing/') | safe }}">All posts →</a> · <a href="{{ get_url(path='archive/') | safe }}">Browse the archive</a></p>
   {% else %}
     <div class="empty-state">
       <p>It is quiet here for now.</p>
