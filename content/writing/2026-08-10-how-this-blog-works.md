@@ -5,6 +5,10 @@ description = "From Markdown to GitHub Pages."
 
 [taxonomies]
 tags = ["Techs"]
+
+[extra]
+language = "en"
+
 +++
 
 This blog is built with [Zola](https://www.getzola.org/), a static site generator written in Rust.

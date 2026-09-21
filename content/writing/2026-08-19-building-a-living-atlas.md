@@ -7,6 +7,9 @@ draft = false
 [taxonomies]
 tags = ["Techs", "Designs"]
 
+[extra]
+language = "en"
+
 +++
 
 Starting with commit `eab60e3`, the site moved away from being a mostly static editorial layout and gradually became a small, living atlas. The first experiments used separate map fragments, but those pieces eventually felt too literal and too disconnected from the rest of the page. The better idea was to treat the terrain as an atmospheric system rather than an isolated animation.

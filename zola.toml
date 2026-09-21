@@ -1,6 +1,6 @@
 base_url = "https://ceskoslov.github.io"
 title = "Ceskoslov"
-description = "Notes on software, agents, design, and everyday life."
+description = "Notes on life."
 default_language = "en"
 ignored_content = ["*:Zone.Identifier", "**/*:Zone.Identifier"]
 compile_sass = false
@@ -10,9 +10,7 @@ feed_filenames = ["atom.xml"]
 generate_sitemap = true
 generate_robots_txt = true
 
-taxonomies = [
-  { name = "tags", feed = true }
-]
+taxonomies = [{ name = "tags", feed = true }]
 
 [markdown]
 smart_punctuation = true
@@ -31,7 +29,10 @@ anchors = "on"
 
 [extra]
 author = "ceskoslov"
-profile_intro = "Notes on software and agents, experiments in visual design, and reflections in Chinese and English."
-featured_posts = ["writing/2026-09-17-building-a-trustworthy-agent-runtime.md", "writing/2026-08-19-building-a-living-atlas.md"]
+profile_intro = "Notes on ..."
+featured_posts = [
+  "writing/2026-09-17-building-a-trustworthy-agent-runtime.md",
+  "writing/2026-08-19-building-a-living-atlas.md",
+]
 social_image = "assets/images/social-card.png"
 github_username = "ceskoslov"

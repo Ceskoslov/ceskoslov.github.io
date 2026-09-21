@@ -1,6 +1,6 @@
 +++
 title = "Writing"
-description = "Essays and notes on software, design, and everyday life."
+description = "Essays and notes."
 template = "writing.html"
 sort_by = "date"
 page_template = "post.html"

@@ -7,6 +7,9 @@ draft = false
 [taxonomies]
 tags = ["Techs", "Agents"]
 
+[extra]
+language = "en"
+
 +++
 
 [Ceskoslov/Nausicaa: A toy agent harness for Ulysses.](https://github.com/Ceskoslov/Nausicaa)
