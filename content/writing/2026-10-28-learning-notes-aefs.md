@@ -1,5 +1,5 @@
 +++
-title = "Recapture What is Skipped"
+title = "Recapture the Skipped"
 date = 2026-10-28
 description = "Anyhow."
 draft = false
